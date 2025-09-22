@@ -573,6 +573,9 @@ def main():
     print("\n💰 Running Quoting Tool Tests...")
     tester.test_quoting_endpoints()
     
+    print("\n📄 Running Document Center Tests...")
+    tester.test_document_center_endpoints()
+    
     # Print final results
     print("\n" + "=" * 60)
     print("📊 FINAL TEST RESULTS")
