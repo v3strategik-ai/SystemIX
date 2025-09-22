@@ -339,6 +339,204 @@ class SystemIXAPITester:
         return (init_success and products_success and analytics_success and 
                 quotes_success and create_success)
 
+    def test_document_center_endpoints(self):
+        """Test comprehensive Document Center functionality"""
+        print("\n📄 Running Document Center Tests...")
+        
+        # 1. Initialize sample document data
+        init_success, _ = self.run_test(
+            "Initialize Document Sample Data", 
+            "POST", 
+            "documents/initialize-sample-data", 
+            200
+        )
+        
+        # 2. Get document categories
+        categories_success, categories = self.run_test(
+            "Get Document Categories", 
+            "GET", 
+            "document-categories", 
+            200
+        )
+        
+        # 3. Get document templates
+        templates_success, templates = self.run_test(
+            "Get Document Templates", 
+            "GET", 
+            "document-templates", 
+            200
+        )
+        
+        # 4. Get documents
+        documents_success, documents = self.run_test(
+            "Get Documents", 
+            "GET", 
+            "documents", 
+            200
+        )
+        
+        # 5. Create a new document category
+        new_category_data = {
+            "name": "Test Category",
+            "description": "Created during API testing",
+            "color": "#FF5722",
+            "icon": "🧪",
+            "created_by": "api_tester"
+        }
+        
+        create_category_success, created_category = self.run_test(
+            "Create Document Category", 
+            "POST", 
+            "document-categories", 
+            200, 
+            new_category_data
+        )
+        
+        # 6. Create a new document template
+        template_success = False
+        created_template = {}
+        
+        if create_category_success and 'id' in created_category:
+            new_template_data = {
+                "title": "Test Template",
+                "description": "Created during API testing",
+                "type": "custom",
+                "category_id": created_category["id"],
+                "content": "<h1>Test Template</h1><p>Hello {{customer_name}}, this is a test template created on {{date}}.</p>",
+                "variables": ["customer_name", "date"],
+                "file_format": "pdf",
+                "access_level": "team",
+                "created_by": "api_tester",
+                "tags": ["test", "api", "template"]
+            }
+            
+            template_success, created_template = self.run_test(
+                "Create Document Template", 
+                "POST", 
+                "document-templates", 
+                200, 
+                new_template_data
+            )
+        
+        # 7. Create a new document
+        document_success = False
+        created_document = {}
+        
+        if template_success and 'id' in created_template:
+            new_document_data = {
+                "title": "Test Document from Template",
+                "description": "Created during API testing using template",
+                "template_id": created_template["id"],
+                "type": "custom",
+                "category_id": created_category["id"],
+                "content": "<h1>Test Document</h1><p>This is a test document created via API.</p>",
+                "file_format": "pdf",
+                "access_level": "private",
+                "signature_required": True,
+                "signers": [
+                    {"name": "Test Signer", "email": "signer@example.com", "role": "signer"}
+                ],
+                "created_by": "api_tester",
+                "tags": ["test", "api", "document"]
+            }
+            
+            document_success, created_document = self.run_test(
+                "Create Document from Template", 
+                "POST", 
+                "documents", 
+                200, 
+                new_document_data
+            )
+        
+        # 8. Get specific template if creation was successful
+        if template_success and 'id' in created_template:
+            self.run_test(
+                "Get Specific Template", 
+                "GET", 
+                f"document-templates/{created_template['id']}", 
+                200
+            )
+        
+        # 9. Get specific document if creation was successful
+        if document_success and 'id' in created_document:
+            self.run_test(
+                "Get Specific Document", 
+                "GET", 
+                f"documents/{created_document['id']}", 
+                200
+            )
+        
+        # 10. Test file conversion
+        import base64
+        test_html_content = "<html><body><h1>Test HTML</h1><p>This is a test HTML document for conversion.</p></body></html>"
+        encoded_content = base64.b64encode(test_html_content.encode()).decode()
+        
+        conversion_data = {
+            "file_content": encoded_content,
+            "source_format": "html",
+            "target_format": "pdf",
+            "document_title": "test_conversion"
+        }
+        
+        conversion_success, conversion_result = self.run_test(
+            "Convert HTML to PDF", 
+            "POST", 
+            "documents/convert", 
+            200, 
+            conversion_data
+        )
+        
+        # 11. Test DocuSign integration (send for signature)
+        docusign_success = False
+        if document_success and 'id' in created_document:
+            docusign_data = {
+                "document_id": created_document["id"],
+                "signers": [
+                    {"name": "Test Signer", "email": "signer@example.com", "role": "signer"}
+                ],
+                "email_subject": "Please sign this test document",
+                "email_message": "This is a test document sent via API for signature.",
+                "send_reminders": True
+            }
+            
+            docusign_success, docusign_result = self.run_test(
+                "Send Document for Signature", 
+                "POST", 
+                f"documents/{created_document['id']}/send-for-signature", 
+                200, 
+                docusign_data
+            )
+            
+            # 12. Check signature status
+            if docusign_success:
+                self.run_test(
+                    "Get Document Signature Status", 
+                    "GET", 
+                    f"documents/{created_document['id']}/signature-status", 
+                    200
+                )
+        
+        # 13. Test filtered queries
+        if categories_success and categories and len(categories) > 0:
+            first_category = categories[0]
+            self.run_test(
+                "Get Templates by Category", 
+                "GET", 
+                f"document-templates?category_id={first_category['id']}", 
+                200
+            )
+            
+            self.run_test(
+                "Get Documents by Category", 
+                "GET", 
+                f"documents?category_id={first_category['id']}", 
+                200
+            )
+        
+        return (init_success and categories_success and templates_success and 
+                documents_success and create_category_success and template_success and 
+                document_success and conversion_success and docusign_success)
+
 def main():
     print("🚀 Starting SystemIX AI Platinum Suite API Tests")
     print("=" * 60)
