@@ -193,6 +193,193 @@ class QuoteAnalytics(BaseModel):
     last_activity: Optional[datetime] = None
     conversion_events: List[Dict[str, Any]] = []
 
+# Document Center Models
+class DocumentType(str, Enum):
+    CONTRACT = "contract"
+    FORM = "form"
+    TEMPLATE = "template"
+    INVOICE = "invoice"
+    PROPOSAL = "proposal"
+    AGREEMENT = "agreement"
+    CUSTOM = "custom"
+
+class DocumentStatus(str, Enum):
+    DRAFT = "draft"
+    ACTIVE = "active"
+    ARCHIVED = "archived"
+    PENDING_SIGNATURE = "pending_signature"
+    SIGNED = "signed"
+    EXPIRED = "expired"
+
+class FileFormat(str, Enum):
+    PDF = "pdf"
+    DOCX = "docx"
+    XLSX = "xlsx"
+    HTML = "html"
+    TXT = "txt"
+
+class AccessLevel(str, Enum):
+    PRIVATE = "private"
+    TEAM = "team"
+    ORGANIZATION = "organization"
+    PUBLIC = "public"
+
+class FormFieldType(str, Enum):
+    TEXT = "text"
+    TEXTAREA = "textarea"
+    NUMBER = "number"
+    DATE = "date"
+    CHECKBOX = "checkbox"
+    RADIO = "radio"
+    SELECT = "select"
+    SIGNATURE = "signature"
+    EMAIL = "email"
+    PHONE = "phone"
+
+class FormField(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    type: FormFieldType
+    label: str
+    placeholder: Optional[str] = None
+    required: bool = False
+    options: List[str] = []  # For select, radio
+    validation: Optional[Dict[str, Any]] = None
+    position: Dict[str, float] = {}  # x, y, width, height for positioning
+    default_value: Optional[str] = None
+
+class DocumentCategory(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    description: Optional[str] = None
+    parent_id: Optional[str] = None
+    color: str = "#3B82F6"
+    icon: str = "📄"
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_by: str
+
+class DocumentTemplate(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    description: Optional[str] = None
+    type: DocumentType
+    category_id: Optional[str] = None
+    content: str  # HTML content or template structure
+    form_fields: List[FormField] = []
+    variables: List[str] = []  # Template variables like {{customer_name}}
+    thumbnail_url: Optional[str] = None
+    file_format: FileFormat = FileFormat.PDF
+    is_active: bool = True
+    access_level: AccessLevel = AccessLevel.TEAM
+    created_by: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    usage_count: int = 0
+    tags: List[str] = []
+
+class Document(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    description: Optional[str] = None
+    template_id: Optional[str] = None
+    type: DocumentType
+    category_id: Optional[str] = None
+    content: str
+    file_path: Optional[str] = None
+    file_url: Optional[str] = None
+    file_format: FileFormat
+    file_size: int = 0  # in bytes
+    status: DocumentStatus = DocumentStatus.DRAFT
+    access_level: AccessLevel = AccessLevel.PRIVATE
+    
+    # DocuSign Integration
+    docusign_envelope_id: Optional[str] = None
+    docusign_status: Optional[str] = None
+    signature_required: bool = False
+    signers: List[Dict[str, str]] = []  # [{"name": "", "email": "", "role": ""}]
+    
+    # Metadata
+    created_by: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    version: int = 1
+    tags: List[str] = []
+    
+    # Relations
+    lead_id: Optional[str] = None
+    customer_id: Optional[str] = None
+    quote_id: Optional[str] = None
+
+class DocumentPermission(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    document_id: str
+    user_id: str
+    permission_type: str  # "view", "edit", "admin"
+    granted_by: str
+    granted_at: datetime = Field(default_factory=datetime.utcnow)
+
+class DocuSignEnvelope(BaseModel):
+    envelope_id: str
+    document_id: str
+    status: str
+    created_date: datetime
+    sent_date: Optional[datetime] = None
+    completed_date: Optional[datetime] = None
+    declined_date: Optional[datetime] = None
+    recipients: List[Dict[str, Any]] = []
+    documents: List[Dict[str, Any]] = []
+
+# Request Models
+class DocumentCategoryCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    parent_id: Optional[str] = None
+    color: str = "#3B82F6"
+    icon: str = "📄"
+    created_by: str
+
+class DocumentTemplateCreate(BaseModel):
+    title: str
+    description: Optional[str] = None
+    type: DocumentType
+    category_id: Optional[str] = None
+    content: str
+    form_fields: List[FormField] = []
+    variables: List[str] = []
+    file_format: FileFormat = FileFormat.PDF
+    access_level: AccessLevel = AccessLevel.TEAM
+    created_by: str
+    tags: List[str] = []
+
+class DocumentCreate(BaseModel):
+    title: str
+    description: Optional[str] = None
+    template_id: Optional[str] = None
+    type: DocumentType
+    category_id: Optional[str] = None
+    content: str
+    file_format: FileFormat
+    access_level: AccessLevel = AccessLevel.PRIVATE
+    signature_required: bool = False
+    signers: List[Dict[str, str]] = []
+    created_by: str
+    tags: List[str] = []
+    lead_id: Optional[str] = None
+    customer_id: Optional[str] = None
+    quote_id: Optional[str] = None
+
+class FileConversionRequest(BaseModel):
+    file_content: str  # Base64 encoded
+    source_format: FileFormat
+    target_format: FileFormat
+    document_title: Optional[str] = None
+
+class DocuSignSendRequest(BaseModel):
+    document_id: str
+    signers: List[Dict[str, str]]  # [{"name": "", "email": "", "role": ""}]
+    email_subject: Optional[str] = None
+    email_message: Optional[str] = None
+    send_reminders: bool = True
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
