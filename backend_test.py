@@ -372,6 +372,9 @@ def main():
     print("\n🤖 Running AI Chat Tests...")
     tester.test_ai_chat()
     
+    print("\n💰 Running Quoting Tool Tests...")
+    tester.test_quoting_endpoints()
+    
     # Print final results
     print("\n" + "=" * 60)
     print("📊 FINAL TEST RESULTS")
