@@ -124,6 +124,7 @@ function App() {
                 <Route path="/calendar" element={<Calendar />} />
                 <Route path="/quotes" element={<QuotingTool />} />
                 <Route path="/documents" element={<DocumentCenter />} />
+                <Route path="/integrations" element={<IntegrationsHub />} />
               </Routes>
             </main>
           </div>
