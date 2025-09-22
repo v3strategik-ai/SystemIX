@@ -120,6 +120,7 @@ function App() {
                 <Route path="/workflows" element={<WorkflowAutomation />} />
                 <Route path="/team" element={<TeamManagement />} />
                 <Route path="/calendar" element={<Calendar />} />
+                <Route path="/quotes" element={<QuotingTool />} />
               </Routes>
             </main>
           </div>
