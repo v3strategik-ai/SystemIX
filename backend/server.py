@@ -18,6 +18,9 @@ import asyncio
 from pathlib import Path
 import base64
 import io
+import requests
+from requests_oauthlib import OAuth2Session
+from authlib.integrations.base_client import OAuthError
 
 # File processing libraries
 from docx import Document as DocxDocument
