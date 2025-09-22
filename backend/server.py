@@ -16,6 +16,17 @@ import uuid
 import json
 import asyncio
 from pathlib import Path
+import base64
+import io
+
+# File processing libraries
+from docx import Document as DocxDocument
+from openpyxl import Workbook, load_workbook
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.lib.utils import ImageReader
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
 
 # AI Integration
 from emergentintegrations.llm.chat import LlmChat, UserMessage
