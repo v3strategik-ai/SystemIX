@@ -1249,6 +1249,377 @@ async def generate_template_thumbnail(template_content: str) -> str:
     svg_content = '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="140" viewBox="0 0 100 140"><rect width="100" height="140" fill="#f3f4f6"/><text x="50" y="70" text-anchor="middle" fill="#6b7280" font-size="12">Template</text></svg>'
     encoded_svg = base64.b64encode(svg_content.encode()).decode()
     return f"data:image/svg+xml;base64,{encoded_svg}"
+
+# Document Center API Routes
+@api_router.get("/document-categories", response_model=List[DocumentCategory])
+async def get_document_categories():
+    """Get all document categories"""
+    categories_cursor = db.document_categories.find().sort("name", 1)
+    categories = await categories_cursor.to_list(1000)
+    return [DocumentCategory(**category) for category in categories]
+
+@api_router.post("/document-categories", response_model=DocumentCategory)
+async def create_document_category(category_data: DocumentCategoryCreate):
+    """Create a new document category"""
+    category = DocumentCategory(**category_data.dict())
+    await db.document_categories.insert_one(category.dict())
+    return category
+
+@api_router.get("/document-templates", response_model=List[DocumentTemplate])
+async def get_document_templates(category_id: Optional[str] = None, type: Optional[str] = None):
+    """Get document templates with optional filters"""
+    filter_query = {"is_active": True}
+    if category_id:
+        filter_query["category_id"] = category_id
+    if type:
+        filter_query["type"] = type
+    
+    templates_cursor = db.document_templates.find(filter_query).sort("created_at", -1)
+    templates = await templates_cursor.to_list(1000)
+    return [DocumentTemplate(**template) for template in templates]
+
+@api_router.post("/document-templates", response_model=DocumentTemplate)
+async def create_document_template(template_data: DocumentTemplateCreate):
+    """Create a new document template"""
+    template_dict = template_data.dict()
+    template_dict["thumbnail_url"] = await generate_template_thumbnail(template_data.content)
+    template = DocumentTemplate(**template_dict)
+    await db.document_templates.insert_one(template.dict())
+    return template
+
+@api_router.get("/document-templates/{template_id}", response_model=DocumentTemplate)
+async def get_document_template(template_id: str):
+    """Get a specific document template"""
+    template = await db.document_templates.find_one({"id": template_id})
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    # Update usage count
+    await db.document_templates.update_one(
+        {"id": template_id},
+        {"$inc": {"usage_count": 1}}
+    )
+    
+    return DocumentTemplate(**template)
+
+@api_router.get("/documents", response_model=List[Document])
+async def get_documents(
+    category_id: Optional[str] = None, 
+    type: Optional[str] = None,
+    status: Optional[str] = None,
+    created_by: Optional[str] = None
+):
+    """Get documents with optional filters"""
+    filter_query = {}
+    if category_id:
+        filter_query["category_id"] = category_id
+    if type:
+        filter_query["type"] = type
+    if status:
+        filter_query["status"] = status
+    if created_by:
+        filter_query["created_by"] = created_by
+    
+    documents_cursor = db.documents.find(filter_query).sort("created_at", -1)
+    documents = await documents_cursor.to_list(1000)
+    return [Document(**document) for document in documents]
+
+@api_router.post("/documents", response_model=Document)
+async def create_document(document_data: DocumentCreate):
+    """Create a new document"""
+    document = Document(**document_data.dict())
+    
+    # If created from template, populate template data
+    if document_data.template_id:
+        template = await db.document_templates.find_one({"id": document_data.template_id})
+        if template:
+            document.content = template["content"]
+            document.type = document.type or template["type"]
+            document.category_id = document.category_id or template["category_id"]
+    
+    await db.documents.insert_one(document.dict())
+    return document
+
+@api_router.get("/documents/{document_id}", response_model=Document)
+async def get_document(document_id: str):
+    """Get a specific document"""
+    document = await db.documents.find_one({"id": document_id})
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    return Document(**document)
+
+@api_router.put("/documents/{document_id}", response_model=Document)
+async def update_document(document_id: str, document_update: Dict[str, Any]):
+    """Update a document"""
+    document = await db.documents.find_one({"id": document_id})
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    document_update["updated_at"] = datetime.utcnow()
+    document_update["version"] = document.get("version", 1) + 1
+    
+    await db.documents.update_one({"id": document_id}, {"$set": document_update})
+    updated_document = await db.documents.find_one({"id": document_id})
+    return Document(**updated_document)
+
+@api_router.post("/documents/convert")
+async def convert_document_file(conversion_request: FileConversionRequest):
+    """Convert document between different file formats"""
+    try:
+        # Decode base64 content
+        file_content = base64.b64decode(conversion_request.file_content)
+        
+        # Perform conversion
+        converted_content = await convert_file(
+            file_content,
+            conversion_request.source_format,
+            conversion_request.target_format,
+            conversion_request.document_title or "converted_document"
+        )
+        
+        # Return converted file as base64
+        converted_base64 = base64.b64encode(converted_content).decode('utf-8')
+        
+        return {
+            "converted_content": converted_base64,
+            "source_format": conversion_request.source_format,
+            "target_format": conversion_request.target_format,
+            "size": len(converted_content)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/documents/{document_id}/send-for-signature")
+async def send_document_for_signature(document_id: str, request: DocuSignSendRequest):
+    """Send document for signature via DocuSign"""
+    document = await db.documents.find_one({"id": document_id})
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    try:
+        # For now, simulate DocuSign integration
+        # In production, you'd integrate with actual DocuSign API
+        envelope_id = f"envelope_{uuid.uuid4()}"
+        
+        # Update document with DocuSign info
+        await db.documents.update_one(
+            {"id": document_id},
+            {
+                "$set": {
+                    "docusign_envelope_id": envelope_id,
+                    "docusign_status": "sent",
+                    "status": DocumentStatus.PENDING_SIGNATURE.value,
+                    "signers": request.signers,
+                    "updated_at": datetime.utcnow()
+                }
+            }
+        )
+        
+        # Store envelope information
+        envelope = DocuSignEnvelope(
+            envelope_id=envelope_id,
+            document_id=document_id,
+            status="sent",
+            created_date=datetime.utcnow(),
+            sent_date=datetime.utcnow(),
+            recipients=request.signers
+        )
+        await db.docusign_envelopes.insert_one(envelope.dict())
+        
+        return {
+            "message": "Document sent for signature successfully",
+            "envelope_id": envelope_id,
+            "document_id": document_id,
+            "signers": request.signers
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/documents/{document_id}/signature-status")
+async def get_document_signature_status(document_id: str):
+    """Get signature status for a document"""
+    document = await db.documents.find_one({"id": document_id})
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    envelope_info = None
+    if document.get("docusign_envelope_id"):
+        envelope_info = await db.docusign_envelopes.find_one(
+            {"envelope_id": document["docusign_envelope_id"]}
+        )
+    
+    return {
+        "document_id": document_id,
+        "signature_required": document.get("signature_required", False),
+        "docusign_status": document.get("docusign_status"),
+        "envelope_id": document.get("docusign_envelope_id"),
+        "envelope_info": envelope_info,
+        "signers": document.get("signers", [])
+    }
+
+@api_router.post("/documents/initialize-sample-data")
+async def initialize_document_sample_data():
+    """Initialize sample document categories and templates"""
+    try:
+        # Clear existing data
+        await db.document_categories.delete_many({})
+        await db.document_templates.delete_many({})
+        
+        # Create sample categories
+        sample_categories = [
+            DocumentCategory(
+                name="Legal Documents",
+                description="Contracts, agreements, and legal forms",
+                color="#DC2626",
+                icon="⚖️",
+                created_by="system"
+            ),
+            DocumentCategory(
+                name="Sales Documents",
+                description="Proposals, invoices, and sales materials",
+                color="#059669",
+                icon="💼",
+                created_by="system"
+            ),
+            DocumentCategory(
+                name="HR Documents",
+                description="Employment forms and policies",
+                color="#7C3AED",
+                icon="👥",
+                created_by="system"
+            ),
+            DocumentCategory(
+                name="Business Forms",
+                description="General business forms and templates",
+                color="#2563EB",
+                icon="📋",
+                created_by="system"
+            )
+        ]
+        
+        for category in sample_categories:
+            await db.document_categories.insert_one(category.dict())
+        
+        # Create sample templates
+        legal_category = sample_categories[0]
+        sales_category = sample_categories[1]
+        
+        sample_templates = [
+            DocumentTemplate(
+                title="Non-Disclosure Agreement (NDA)",
+                description="Standard NDA template for protecting confidential information",
+                type=DocumentType.CONTRACT,
+                category_id=legal_category.id,
+                content="""
+                <h1>NON-DISCLOSURE AGREEMENT</h1>
+                <p>This Non-Disclosure Agreement ("Agreement") is entered into on {{date}} by and between:</p>
+                <p><strong>Company:</strong> {{company_name}}<br>
+                <strong>Address:</strong> {{company_address}}</p>
+                <p><strong>Recipient:</strong> {{recipient_name}}<br>
+                <strong>Address:</strong> {{recipient_address}}</p>
+                <h2>1. Definition of Confidential Information</h2>
+                <p>For purposes of this Agreement, "Confidential Information" means any and all information...</p>
+                <h2>2. Obligations</h2>
+                <p>The Recipient agrees to...</p>
+                <div class="signature-section">
+                <p>Company Signature: ________________________</p>
+                <p>Recipient Signature: ________________________</p>
+                </div>
+                """,
+                variables=["date", "company_name", "company_address", "recipient_name", "recipient_address"],
+                form_fields=[
+                    FormField(type=FormFieldType.DATE, label="Agreement Date", required=True),
+                    FormField(type=FormFieldType.TEXT, label="Company Name", required=True),
+                    FormField(type=FormFieldType.TEXTAREA, label="Company Address", required=True),
+                    FormField(type=FormFieldType.TEXT, label="Recipient Name", required=True),
+                    FormField(type=FormFieldType.TEXTAREA, label="Recipient Address", required=True),
+                    FormField(type=FormFieldType.SIGNATURE, label="Company Signature", required=True),
+                    FormField(type=FormFieldType.SIGNATURE, label="Recipient Signature", required=True)
+                ],
+                file_format=FileFormat.PDF,
+                created_by="system",
+                tags=["legal", "contract", "nda", "confidentiality"]
+            ),
+            DocumentTemplate(
+                title="Service Agreement",
+                description="Professional service agreement template",
+                type=DocumentType.CONTRACT,
+                category_id=legal_category.id,
+                content="""
+                <h1>SERVICE AGREEMENT</h1>
+                <p>This Service Agreement is made on {{date}} between {{client_name}} and {{service_provider}}.</p>
+                <h2>Services to be Provided</h2>
+                <p>{{services_description}}</p>
+                <h2>Payment Terms</h2>
+                <p>Total Amount: ${{total_amount}}<br>
+                Payment Schedule: {{payment_schedule}}</p>
+                <h2>Timeline</h2>
+                <p>Start Date: {{start_date}}<br>
+                End Date: {{end_date}}</p>
+                """,
+                variables=["date", "client_name", "service_provider", "services_description", "total_amount", "payment_schedule", "start_date", "end_date"],
+                created_by="system",
+                tags=["legal", "contract", "service", "agreement"]
+            ),
+            DocumentTemplate(
+                title="Business Proposal",
+                description="Professional business proposal template",
+                type=DocumentType.PROPOSAL,
+                category_id=sales_category.id,
+                content="""
+                <h1>BUSINESS PROPOSAL</h1>
+                <p><strong>To:</strong> {{client_name}}<br>
+                <strong>From:</strong> {{company_name}}<br>
+                <strong>Date:</strong> {{date}}</p>
+                <h2>Executive Summary</h2>
+                <p>{{executive_summary}}</p>
+                <h2>Proposed Solution</h2>
+                <p>{{solution_description}}</p>
+                <h2>Investment</h2>
+                <p>Total Investment: ${{total_amount}}</p>
+                <h2>Timeline</h2>
+                <p>Project Duration: {{timeline}}</p>
+                <h2>Next Steps</h2>
+                <p>{{next_steps}}</p>
+                """,
+                variables=["client_name", "company_name", "date", "executive_summary", "solution_description", "total_amount", "timeline", "next_steps"],
+                created_by="system",
+                tags=["sales", "proposal", "business"]
+            ),
+            DocumentTemplate(
+                title="Invoice Template",
+                description="Professional invoice template",
+                type=DocumentType.INVOICE,
+                category_id=sales_category.id,
+                content="""
+                <h1>INVOICE</h1>
+                <p><strong>Invoice #:</strong> {{invoice_number}}<br>
+                <strong>Date:</strong> {{date}}<br>
+                <strong>Due Date:</strong> {{due_date}}</p>
+                <h2>Bill To:</h2>
+                <p>{{client_name}}<br>
+                {{client_address}}</p>
+                <h2>Services/Products</h2>
+                <table border="1" width="100%">
+                <tr><th>Description</th><th>Quantity</th><th>Rate</th><th>Amount</th></tr>
+                {{line_items}}
+                </table>
+                <p><strong>Total: ${{total_amount}}</strong></p>
+                <p>Payment Terms: {{payment_terms}}</p>
+                """,
+                variables=["invoice_number", "date", "due_date", "client_name", "client_address", "line_items", "total_amount", "payment_terms"],
+                created_by="system",
+                tags=["sales", "invoice", "billing"]
+            )
+        ]
+        
+        for template in sample_templates:
+            template.thumbnail_url = await generate_template_thumbnail(template.content)
+            await db.document_templates.insert_one(template.dict())
+        
+        return {"message": "Sample document data initialized successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 @api_router.post("/initialize-mock-data")
 async def initialize_mock_data():
     """Initialize the system with mock data"""
