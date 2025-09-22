@@ -11,6 +11,7 @@ import TaskManagement from './components/TaskManagement';
 import WorkflowAutomation from './components/WorkflowAutomation';
 import TeamManagement from './components/TeamManagement';
 import Calendar from './components/Calendar';
+import QuotingTool from './components/QuotingTool';
 import AIChat from './components/AIChat';
 import LoadingSpinner from './components/LoadingSpinner';
 
