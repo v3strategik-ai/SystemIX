@@ -537,6 +537,198 @@ class SystemIXAPITester:
                 documents_success and create_category_success and template_success and 
                 document_success and conversion_success and docusign_success)
 
+    def test_integrations_hub_endpoints(self):
+        """Test comprehensive Integrations Hub functionality"""
+        print("\n🔗 Running Integrations Hub Tests...")
+        
+        # 1. Initialize sample integration data
+        init_success, _ = self.run_test(
+            "Initialize Integration Sample Data", 
+            "POST", 
+            "integrations/initialize-sample-data", 
+            200
+        )
+        
+        # 2. Get available platforms
+        platforms_success, platforms = self.run_test(
+            "Get Available Platforms", 
+            "GET", 
+            "integrations/platforms", 
+            200
+        )
+        
+        # 3. Get user connections
+        connections_success, connections = self.run_test(
+            "Get User Connections", 
+            "GET", 
+            "integrations/connections", 
+            200
+        )
+        
+        # 4. Get integration analytics
+        analytics_success, analytics = self.run_test(
+            "Get Integration Analytics", 
+            "GET", 
+            "integrations/analytics", 
+            200
+        )
+        
+        # 5. Test OAuth initiation (if we have platforms)
+        oauth_init_success = False
+        oauth_callback_success = False
+        
+        if platforms_success and platforms and len(platforms) > 0:
+            # Find an OAuth2 platform
+            oauth_platform = None
+            for platform in platforms:
+                if platform.get('auth_type') == 'oauth2':
+                    oauth_platform = platform
+                    break
+            
+            if oauth_platform:
+                oauth_init_data = {
+                    "platform_id": oauth_platform["id"],
+                    "connection_name": "Test OAuth Connection",
+                    "redirect_uri": "https://deal-finder-76.preview.emergentagent.com/integrations/callback",
+                    "user_id": "api_tester"
+                }
+                
+                oauth_init_success, oauth_init_result = self.run_test(
+                    "Initiate OAuth Flow", 
+                    "POST", 
+                    "integrations/oauth/initiate", 
+                    200, 
+                    oauth_init_data
+                )
+                
+                # 6. Test OAuth callback (simulated)
+                if oauth_init_success:
+                    oauth_callback_data = {
+                        "platform_id": oauth_platform["id"],
+                        "code": "test_auth_code_12345",
+                        "state": oauth_init_result.get("state", "test_state"),
+                        "user_id": "api_tester"
+                    }
+                    
+                    oauth_callback_success, oauth_callback_result = self.run_test(
+                        "OAuth Callback Handling", 
+                        "POST", 
+                        "integrations/oauth/callback", 
+                        200, 
+                        oauth_callback_data
+                    )
+        
+        # 7. Test API Key connection (if we have API key platforms)
+        api_key_success = False
+        created_connection = {}
+        
+        if platforms_success and platforms and len(platforms) > 0:
+            # Find an API key platform
+            api_key_platform = None
+            for platform in platforms:
+                if platform.get('auth_type') == 'api_key':
+                    api_key_platform = platform
+                    break
+            
+            if api_key_platform:
+                api_key_data = {
+                    "platform_id": api_key_platform["id"],
+                    "connection_name": "Test API Key Connection",
+                    "api_key": "test_api_key_12345",
+                    "user_id": "api_tester",
+                    "additional_config": {
+                        "endpoint": "https://api.example.com",
+                        "version": "v1"
+                    }
+                }
+                
+                api_key_success, created_connection = self.run_test(
+                    "Create API Key Connection", 
+                    "POST", 
+                    "integrations/api-key-connection", 
+                    200, 
+                    api_key_data
+                )
+        
+        # 8. Test sync job creation (if we have a connection)
+        sync_job_success = False
+        created_sync_job = {}
+        
+        if api_key_success and 'id' in created_connection:
+            sync_job_data = {
+                "connection_id": created_connection["id"],
+                "job_type": "manual",
+                "direction": "bidirectional",
+                "data_type": "contacts"
+            }
+            
+            sync_job_success, created_sync_job = self.run_test(
+                "Create Manual Sync Job", 
+                "POST", 
+                "integrations/sync-jobs", 
+                200, 
+                sync_job_data
+            )
+        
+        # 9. Test connection disconnect (if we have a connection)
+        disconnect_success = False
+        if api_key_success and 'id' in created_connection:
+            disconnect_success, disconnect_result = self.run_test(
+                "Disconnect Integration", 
+                "DELETE", 
+                f"integrations/connections/{created_connection['id']}", 
+                200
+            )
+        
+        # 10. Test filtered platform queries
+        if platforms_success:
+            # Test filtering by type
+            self.run_test(
+                "Get CRM Platforms", 
+                "GET", 
+                "integrations/platforms?type=crm", 
+                200
+            )
+            
+            self.run_test(
+                "Get Payment Platforms", 
+                "GET", 
+                "integrations/platforms?type=payment", 
+                200
+            )
+            
+            self.run_test(
+                "Get Marketing Platforms", 
+                "GET", 
+                "integrations/platforms?type=marketing", 
+                200
+            )
+        
+        # 11. Test connection filtering
+        if connections_success:
+            self.run_test(
+                "Get Active Connections", 
+                "GET", 
+                "integrations/connections?status=connected", 
+                200
+            )
+        
+        # 12. Test analytics with date range
+        from datetime import datetime, timedelta
+        end_date = datetime.utcnow()
+        start_date = end_date - timedelta(days=30)
+        
+        self.run_test(
+            "Get Analytics with Date Range", 
+            "GET", 
+            f"integrations/analytics?start_date={start_date.isoformat()}&end_date={end_date.isoformat()}", 
+            200
+        )
+        
+        return (init_success and platforms_success and connections_success and 
+                analytics_success and (oauth_init_success or api_key_success) and 
+                sync_job_success)
+
 def main():
     print("🚀 Starting SystemIX AI Platinum Suite API Tests")
     print("=" * 60)
