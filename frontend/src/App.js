@@ -13,6 +13,7 @@ import TeamManagement from './components/TeamManagement';
 import Calendar from './components/Calendar';
 import QuotingTool from './components/QuotingTool';
 import DocumentCenter from './components/DocumentCenter';
+import IntegrationsHub from './components/IntegrationsHub';
 import AIChat from './components/AIChat';
 import LoadingSpinner from './components/LoadingSpinner';
 
