@@ -14,6 +14,7 @@ import Calendar from './components/Calendar';
 import QuotingTool from './components/QuotingTool';
 import DocumentCenter from './components/DocumentCenter';
 import IntegrationsHub from './components/IntegrationsHub';
+import Settings from './components/Settings';
 import AIChat from './components/AIChat';
 import LoadingSpinner from './components/LoadingSpinner';
 
