@@ -768,6 +768,9 @@ def main():
     print("\n📄 Running Document Center Tests...")
     tester.test_document_center_endpoints()
     
+    print("\n🔗 Running Integrations Hub Tests...")
+    tester.test_integrations_hub_endpoints()
+    
     # Print final results
     print("\n" + "=" * 60)
     print("📊 FINAL TEST RESULTS")
