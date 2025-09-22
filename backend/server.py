@@ -449,7 +449,372 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 
-# Mock data initialization
+# Helper Functions
+async def calculate_quote_totals(quote: Quote):
+    """Calculate quote totals including taxes and discounts"""
+    subtotal = 0.0
+    total_discount = 0.0
+    
+    for item in quote.line_items:
+        # Calculate line total before discount
+        line_subtotal = item.quantity * item.unit_price
+        
+        # Apply discounts
+        if item.discount_percentage > 0:
+            item.discount_amount = line_subtotal * (item.discount_percentage / 100)
+        
+        item.line_total = line_subtotal - item.discount_amount
+        subtotal += line_subtotal
+        total_discount += item.discount_amount
+    
+    quote.subtotal = subtotal
+    quote.total_discount = total_discount
+    
+    # Calculate tax
+    tax_base = subtotal - total_discount
+    if quote.tax_settings.tax_rate > 0:
+        quote.tax_settings.tax_amount = tax_base * (quote.tax_settings.tax_rate / 100)
+    
+    quote.total_amount = tax_base + quote.tax_settings.tax_amount
+    return quote
+
+async def generate_quote_number():
+    """Generate unique quote number"""
+    timestamp = datetime.utcnow().strftime("%Y%m%d")
+    count = await db.quotes.count_documents({"quote_number": {"$regex": f"^QT-{timestamp}"}})
+    return f"QT-{timestamp}-{count + 1:04d}"
+
+async def calculate_conversion_probability(quote: Quote):
+    """AI-powered conversion probability calculation"""
+    try:
+        ai_chat = await get_ai_chat()
+        
+        prompt = f"""
+        Analyze this quote and estimate conversion probability (0-100%):
+        - Customer: {quote.customer_name}
+        - Total Amount: ${quote.total_amount:,.2f}
+        - Line Items: {len(quote.line_items)}
+        - Days since created: {(datetime.utcnow() - quote.created_at).days}
+        - View count: {quote.view_count}
+        - Industry context from line items
+        
+        Provide only a number between 0-100 representing percentage probability.
+        """
+        
+        user_message = UserMessage(text=prompt)
+        response = await ai_chat.send_message(user_message)
+        
+        # Extract number from response
+        probability = float(''.join(filter(str.isdigit, response))) if response else 50.0
+        return min(max(probability, 0.0), 100.0)
+    except:
+        return 50.0  # Default probability
+
+# Quoting API Routes
+@api_router.get("/products-services", response_model=List[ProductService])
+async def get_products_services():
+    """Get all products and services"""
+    products_cursor = db.products_services.find({"is_active": True}).sort("name", 1)
+    products = await products_cursor.to_list(1000)
+    return [ProductService(**product) for product in products]
+
+@api_router.post("/products-services", response_model=ProductService)
+async def create_product_service(product_data: ProductServiceCreate):
+    """Create a new product or service"""
+    product = ProductService(**product_data.dict())
+    await db.products_services.insert_one(product.dict())
+    return product
+
+@api_router.get("/quotes", response_model=List[Quote])
+async def get_quotes(status: Optional[str] = None):
+    """Get all quotes with optional status filter"""
+    filter_query = {}
+    if status:
+        filter_query["status"] = status
+    
+    quotes_cursor = db.quotes.find(filter_query).sort("created_at", -1)
+    quotes = await quotes_cursor.to_list(1000)
+    return [Quote(**quote) for quote in quotes]
+
+@api_router.post("/quotes", response_model=Quote)
+async def create_quote(quote_data: QuoteCreate):
+    """Create a new quote"""
+    # Generate quote number
+    quote_number = await generate_quote_number()
+    
+    # Create quote object
+    quote_dict = quote_data.dict()
+    quote_dict["quote_number"] = quote_number
+    quote_dict["expires_at"] = datetime.utcnow() + timedelta(days=quote_data.expires_in_days)
+    quote_dict["last_modified_by"] = quote_data.created_by
+    
+    # Process line items
+    processed_line_items = []
+    for item_data in quote_data.line_items:
+        # Get product/service details
+        product = await db.products_services.find_one({"id": item_data.product_service_id})
+        if not product:
+            raise HTTPException(status_code=404, detail=f"Product/service not found: {item_data.product_service_id}")
+        
+        # Determine price based on tier
+        unit_price = product["unit_price"]
+        if item_data.pricing_tier != PricingTier.STANDARD and product.get("pricing_tiers"):
+            tier_price = product["pricing_tiers"].get(item_data.pricing_tier.value)
+            if tier_price:
+                unit_price = tier_price
+        
+        line_item = QuoteLineItem(
+            product_service_id=item_data.product_service_id,
+            product_name=product["name"],
+            description=product.get("description"),
+            quantity=item_data.quantity,
+            unit_price=unit_price,
+            discount_percentage=item_data.discount_percentage,
+            discount_amount=item_data.discount_amount,
+            pricing_tier=item_data.pricing_tier
+        )
+        processed_line_items.append(line_item)
+    
+    quote_dict["line_items"] = [item.dict() for item in processed_line_items]
+    quote = Quote(**quote_dict)
+    
+    # Calculate totals
+    quote = await calculate_quote_totals(quote)
+    
+    # Calculate AI conversion probability
+    quote.conversion_probability = await calculate_conversion_probability(quote)
+    
+    await db.quotes.insert_one(quote.dict())
+    return quote
+
+@api_router.get("/quotes/{quote_id}", response_model=Quote)
+async def get_quote(quote_id: str):
+    """Get a specific quote"""
+    quote = await db.quotes.find_one({"id": quote_id})
+    if not quote:
+        raise HTTPException(status_code=404, detail="Quote not found")
+    
+    # Track view
+    await db.quotes.update_one(
+        {"id": quote_id},
+        {
+            "$inc": {"view_count": 1},
+            "$set": {"viewed_at": datetime.utcnow()}
+        }
+    )
+    
+    return Quote(**quote)
+
+@api_router.put("/quotes/{quote_id}", response_model=Quote)
+async def update_quote(quote_id: str, quote_update: QuoteUpdate):
+    """Update a quote"""
+    quote = await db.quotes.find_one({"id": quote_id})
+    if not quote:
+        raise HTTPException(status_code=404, detail="Quote not found")
+    
+    update_data = {k: v for k, v in quote_update.dict().items() if v is not None}
+    update_data["updated_at"] = datetime.utcnow()
+    
+    # If line items are updated, recalculate totals
+    if "line_items" in update_data:
+        # Process line items similar to create_quote
+        processed_line_items = []
+        for item_data in quote_update.line_items:
+            product = await db.products_services.find_one({"id": item_data.product_service_id})
+            if not product:
+                continue
+            
+            unit_price = product["unit_price"]
+            if item_data.pricing_tier != PricingTier.STANDARD and product.get("pricing_tiers"):
+                tier_price = product["pricing_tiers"].get(item_data.pricing_tier.value)
+                if tier_price:
+                    unit_price = tier_price
+            
+            line_item = QuoteLineItem(
+                product_service_id=item_data.product_service_id,
+                product_name=product["name"],
+                description=product.get("description"),
+                quantity=item_data.quantity,
+                unit_price=unit_price,
+                discount_percentage=item_data.discount_percentage,
+                discount_amount=item_data.discount_amount,
+                pricing_tier=item_data.pricing_tier
+            )
+            processed_line_items.append(line_item)
+        
+        update_data["line_items"] = [item.dict() for item in processed_line_items]
+        
+        # Recalculate totals
+        updated_quote = Quote(**{**quote, **update_data})
+        updated_quote = await calculate_quote_totals(updated_quote)
+        update_data.update({
+            "subtotal": updated_quote.subtotal,
+            "total_discount": updated_quote.total_discount,
+            "tax_settings": updated_quote.tax_settings.dict(),
+            "total_amount": updated_quote.total_amount
+        })
+    
+    await db.quotes.update_one({"id": quote_id}, {"$set": update_data})
+    updated_quote = await db.quotes.find_one({"id": quote_id})
+    return Quote(**updated_quote)
+
+@api_router.post("/quotes/{quote_id}/send")
+async def send_quote(quote_id: str):
+    """Send quote to customer"""
+    quote = await db.quotes.find_one({"id": quote_id})
+    if not quote:
+        raise HTTPException(status_code=404, detail="Quote not found")
+    
+    # Update status and sent timestamp
+    await db.quotes.update_one(
+        {"id": quote_id},
+        {
+            "$set": {
+                "status": QuoteStatus.SENT.value,
+                "sent_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }
+        }
+    )
+    
+    # Here you would integrate with email service to actually send the quote
+    # For now, we'll simulate it
+    
+    return {"message": "Quote sent successfully", "quote_id": quote_id}
+
+@api_router.post("/quotes/{quote_id}/approve")
+async def approve_quote(quote_id: str, approval: ApprovalRequest):
+    """Approve or reject a quote"""
+    quote = await db.quotes.find_one({"id": quote_id})
+    if not quote:
+        raise HTTPException(status_code=404, detail="Quote not found")
+    
+    status = ApprovalStatus.APPROVED if approval.action == "approve" else ApprovalStatus.REJECTED
+    
+    await db.quotes.update_one(
+        {"id": quote_id},
+        {
+            "$set": {
+                "approval_status": status.value,
+                "approved_by": approval.approved_by,
+                "approval_notes": approval.notes,
+                "updated_at": datetime.utcnow()
+            }
+        }
+    )
+    
+    return {"message": f"Quote {approval.action}d successfully", "quote_id": quote_id}
+
+@api_router.get("/quotes/{quote_id}/analytics", response_model=QuoteAnalytics)
+async def get_quote_analytics(quote_id: str):
+    """Get analytics for a specific quote"""
+    quote = await db.quotes.find_one({"id": quote_id})
+    if not quote:
+        raise HTTPException(status_code=404, detail="Quote not found")
+    
+    analytics = QuoteAnalytics(
+        quote_id=quote_id,
+        total_views=quote.get("view_count", 0),
+        unique_views=quote.get("view_count", 0),  # Simplified for now
+        last_activity=quote.get("viewed_at"),
+        conversion_events=[]
+    )
+    
+    if quote.get("sent_at") and quote.get("viewed_at"):
+        time_diff = quote["viewed_at"] - quote["sent_at"]
+        analytics.time_to_first_view = int(time_diff.total_seconds() / 60)
+    
+    return analytics
+
+@api_router.get("/quotes/analytics/summary")
+async def get_quotes_analytics_summary():
+    """Get overall quotes analytics summary"""
+    total_quotes = await db.quotes.count_documents({})
+    sent_quotes = await db.quotes.count_documents({"status": QuoteStatus.SENT.value})
+    accepted_quotes = await db.quotes.count_documents({"status": QuoteStatus.ACCEPTED.value})
+    
+    # Calculate totals
+    pipeline = [
+        {"$group": {
+            "_id": None,
+            "total_value": {"$sum": "$total_amount"},
+            "avg_value": {"$avg": "$total_amount"}
+        }}
+    ]
+    
+    result = await db.quotes.aggregate(pipeline).to_list(1)
+    total_value = result[0]["total_value"] if result else 0
+    avg_value = result[0]["avg_value"] if result else 0
+    
+    conversion_rate = (accepted_quotes / sent_quotes * 100) if sent_quotes > 0 else 0
+    
+    return {
+        "total_quotes": total_quotes,
+        "sent_quotes": sent_quotes,
+        "accepted_quotes": accepted_quotes,
+        "conversion_rate": round(conversion_rate, 2),
+        "total_value": total_value,
+        "average_quote_value": round(avg_value, 2)
+    }
+
+@api_router.post("/quotes/initialize-sample-data")
+async def initialize_quote_sample_data():
+    """Initialize sample products/services and quotes"""
+    try:
+        # Clear existing data
+        await db.products_services.delete_many({})
+        await db.quotes.delete_many({})
+        
+        # Create sample products/services
+        sample_products = [
+            ProductService(
+                name="Website Development",
+                description="Custom website development with modern design",
+                category="Web Services",
+                unit_price=5000.0,
+                pricing_tiers={"standard": 5000, "premium": 4000, "enterprise": 3500},
+                is_service=True
+            ),
+            ProductService(
+                name="SEO Optimization",
+                description="Search engine optimization package",
+                category="Marketing",
+                unit_price=1500.0,
+                pricing_tiers={"standard": 1500, "premium": 1200, "enterprise": 1000},
+                is_service=True
+            ),
+            ProductService(
+                name="Cloud Hosting",
+                description="Professional cloud hosting service",
+                category="Hosting",
+                unit_price=100.0,
+                pricing_tiers={"standard": 100, "premium": 80, "enterprise": 60},
+                is_service=True
+            ),
+            ProductService(
+                name="Mobile App Development",
+                description="iOS and Android app development",
+                category="Mobile Services",
+                unit_price=15000.0,
+                pricing_tiers={"standard": 15000, "premium": 12000, "enterprise": 10000},
+                is_service=True
+            ),
+            ProductService(
+                name="AI Integration Consultation",
+                description="Expert consultation on AI integration strategies",
+                category="Consultation",
+                unit_price=300.0,
+                pricing_tiers={"standard": 300, "premium": 250, "enterprise": 200},
+                is_service=True
+            )
+        ]
+        
+        for product in sample_products:
+            await db.products_services.insert_one(product.dict())
+        
+        return {"message": "Sample quoting data initialized successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 @api_router.post("/initialize-mock-data")
 async def initialize_mock_data():
     """Initialize the system with mock data"""
