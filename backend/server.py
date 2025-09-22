@@ -575,6 +575,305 @@ class FieldMappingUpdate(BaseModel):
     connection_id: str
     field_mappings: Dict[str, str]
 
+# Settings & Configuration Models
+class UserRole(str, Enum):
+    ADMIN = "admin"
+    MANAGER = "manager"
+    USER = "user"
+    VIEWER = "viewer"
+
+class PermissionType(str, Enum):
+    READ = "read"
+    WRITE = "write"
+    DELETE = "delete"
+    ADMIN = "admin"
+
+class NotificationFrequency(str, Enum):
+    IMMEDIATE = "immediate"
+    HOURLY = "hourly"
+    DAILY = "daily"
+    WEEKLY = "weekly"
+    NEVER = "never"
+
+class AIModel(str, Enum):
+    GPT4 = "gpt-4"
+    GPT35 = "gpt-3.5-turbo"
+    CLAUDE = "claude-3"
+    GEMINI = "gemini-pro"
+
+class ThemeType(str, Enum):
+    LIGHT = "light"
+    DARK = "dark"
+    AUTO = "auto"
+
+class UserPermission(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    module: str  # 'leads', 'quotes', 'documents', etc.
+    permission_type: PermissionType
+    granted_by: str
+    granted_at: datetime = Field(default_factory=datetime.utcnow)
+    expires_at: Optional[datetime] = None
+
+class UserProfile(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    username: str
+    email: str
+    full_name: str
+    role: UserRole
+    department: Optional[str] = None
+    timezone: str = "UTC"
+    language: str = "en"
+    is_active: bool = True
+    last_login: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    permissions: List[str] = []  # Cached permissions
+
+class SystemSettings(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    category: str  # 'security', 'backup', 'notifications', etc.
+    key: str
+    value: Any
+    data_type: str  # 'string', 'number', 'boolean', 'json'
+    description: str
+    is_public: bool = False  # Can non-admin users see this setting?
+    updated_by: str
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class SecurityPolicy(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    description: str
+    rules: Dict[str, Any] = {
+        "password_min_length": 8,
+        "password_require_uppercase": True,
+        "password_require_lowercase": True,
+        "password_require_numbers": True,
+        "password_require_symbols": True,
+        "password_expiry_days": 90,
+        "max_login_attempts": 5,
+        "lockout_duration_minutes": 30,
+        "session_timeout_minutes": 480,
+        "require_2fa": False,
+        "allowed_ip_ranges": [],
+        "allowed_domains": []
+    }
+    is_active: bool = True
+    created_by: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class BackupSettings(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    backup_frequency: str = "daily"  # 'hourly', 'daily', 'weekly'
+    backup_retention_days: int = 30
+    backup_location: str = "cloud"  # 'local', 'cloud', 's3'
+    include_files: bool = True
+    include_database: bool = True
+    encrypt_backups: bool = True
+    notification_email: Optional[str] = None
+    is_active: bool = True
+    last_backup_at: Optional[datetime] = None
+    next_backup_at: Optional[datetime] = None
+    updated_by: str
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class WebhookConfiguration(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    url: str
+    events: List[str] = []  # ['lead.created', 'quote.sent', etc.]
+    secret_key: str
+    retry_attempts: int = 3
+    retry_delay_seconds: int = 30
+    timeout_seconds: int = 30
+    is_active: bool = True
+    headers: Dict[str, str] = {}
+    created_by: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    last_triggered_at: Optional[datetime] = None
+    success_count: int = 0
+    failure_count: int = 0
+
+class RateLimitSettings(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    resource: str  # 'api', 'integration', 'ai_requests'
+    limit_per_hour: int = 1000
+    limit_per_day: int = 10000
+    burst_limit: int = 100
+    user_role_multipliers: Dict[str, float] = {
+        "admin": 2.0,
+        "manager": 1.5,
+        "user": 1.0,
+        "viewer": 0.5
+    }
+    is_active: bool = True
+    updated_by: str
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class AITaskRule(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    description: str
+    condition: Dict[str, Any] = {}  # JSON condition logic
+    action: Dict[str, Any] = {}  # What to do when condition is met
+    priority: int = 1  # 1-10, higher = more important
+    is_active: bool = True
+    created_by: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    execution_count: int = 0
+    last_executed_at: Optional[datetime] = None
+
+class BusinessRule(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    description: str
+    module: str  # 'leads', 'quotes', 'tasks', etc.
+    trigger_event: str  # 'create', 'update', 'delete', 'custom'
+    conditions: List[Dict[str, Any]] = []
+    actions: List[Dict[str, Any]] = []
+    is_active: bool = True
+    priority: int = 1
+    created_by: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    execution_count: int = 0
+    success_count: int = 0
+    failure_count: int = 0
+
+class DashboardWidget(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    widget_type: str  # 'metrics', 'chart', 'list', 'custom'
+    widget_config: Dict[str, Any] = {}
+    position: Dict[str, int] = {"x": 0, "y": 0, "w": 1, "h": 1}
+    is_visible: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class MenuConfiguration(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_role: UserRole
+    menu_items: List[Dict[str, Any]] = []  # Menu structure
+    hidden_modules: List[str] = []
+    custom_order: List[str] = []
+    updated_by: str
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class AISettings(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    category: str  # 'model', 'scoring', 'automation', 'assistant'
+    settings: Dict[str, Any] = {
+        # Model preferences
+        "preferred_model": "gpt-4",
+        "confidence_threshold": 0.8,
+        "max_tokens": 1000,
+        
+        # Lead scoring
+        "scoring_algorithm": "ml_enhanced",
+        "scoring_factors": {
+            "company_size": 0.3,
+            "industry_match": 0.2,
+            "engagement_level": 0.3,
+            "budget_qualification": 0.2
+        },
+        
+        # Automation triggers
+        "automation_sensitivity": "medium",
+        "auto_assign_threshold": 0.7,
+        "escalation_threshold": 0.9,
+        
+        # SIXA assistant
+        "personality": "professional",
+        "response_length": "medium",
+        "proactive_suggestions": True,
+        "learning_enabled": True
+    }
+    updated_by: str
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class NotificationSettings(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    email_notifications: Dict[str, bool] = {
+        "new_leads": True,
+        "quote_updates": True,
+        "task_assignments": True,
+        "workflow_completions": True,
+        "system_alerts": True,
+        "integration_failures": True
+    }
+    notification_frequency: NotificationFrequency = NotificationFrequency.IMMEDIATE
+    quiet_hours_start: Optional[str] = None  # "22:00"
+    quiet_hours_end: Optional[str] = None    # "08:00"
+    weekend_notifications: bool = False
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+# Request Models
+class UserProfileCreate(BaseModel):
+    username: str
+    email: str
+    full_name: str
+    role: UserRole
+    department: Optional[str] = None
+    timezone: str = "UTC"
+    language: str = "en"
+
+class UserProfileUpdate(BaseModel):
+    full_name: Optional[str] = None
+    department: Optional[str] = None
+    timezone: Optional[str] = None
+    language: Optional[str] = None
+    role: Optional[UserRole] = None
+
+class SystemSettingUpdate(BaseModel):
+    category: str
+    key: str
+    value: Any
+    data_type: str = "string"
+    description: Optional[str] = None
+
+class SecurityPolicyUpdate(BaseModel):
+    rules: Dict[str, Any]
+
+class WebhookConfigurationCreate(BaseModel):
+    name: str
+    url: str
+    events: List[str]
+    retry_attempts: int = 3
+    retry_delay_seconds: int = 30
+    timeout_seconds: int = 30
+    headers: Dict[str, str] = {}
+    created_by: str
+
+class AITaskRuleCreate(BaseModel):
+    name: str
+    description: str
+    condition: Dict[str, Any]
+    action: Dict[str, Any]
+    priority: int = 1
+    created_by: str
+
+class BusinessRuleCreate(BaseModel):
+    name: str
+    description: str
+    module: str
+    trigger_event: str
+    conditions: List[Dict[str, Any]]
+    actions: List[Dict[str, Any]]
+    priority: int = 1
+    created_by: str
+
+class DashboardWidgetUpdate(BaseModel):
+    widget_config: Optional[Dict[str, Any]] = None
+    position: Optional[Dict[str, int]] = None
+    is_visible: Optional[bool] = None
+
+class AISettingsUpdate(BaseModel):
+    category: str
+    settings: Dict[str, Any]
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
