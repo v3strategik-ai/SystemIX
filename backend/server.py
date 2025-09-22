@@ -383,6 +383,198 @@ class DocuSignSendRequest(BaseModel):
     email_message: Optional[str] = None
     send_reminders: bool = True
 
+# Integrations Hub Models
+class IntegrationType(str, Enum):
+    CRM = "crm"
+    PAYMENT = "payment"
+    MARKETING = "marketing"
+    COMMUNICATION = "communication"
+    PROJECT_MANAGEMENT = "project_management"
+    ECOMMERCE = "ecommerce"
+    CUSTOM = "custom"
+
+class ConnectionStatus(str, Enum):
+    CONNECTED = "connected"
+    DISCONNECTED = "disconnected"
+    ERROR = "error"
+    PENDING = "pending"
+    EXPIRED = "expired"
+
+class SyncStatus(str, Enum):
+    SUCCESS = "success"
+    FAILED = "failed"
+    IN_PROGRESS = "in_progress"
+    PENDING = "pending"
+    CANCELLED = "cancelled"
+
+class AuthType(str, Enum):
+    OAUTH2 = "oauth2"
+    API_KEY = "api_key"
+    BASIC_AUTH = "basic_auth"
+    BEARER_TOKEN = "bearer_token"
+    CUSTOM = "custom"
+
+class SyncDirection(str, Enum):
+    BIDIRECTIONAL = "bidirectional"
+    INBOUND = "inbound"  # From external to SystemIX
+    OUTBOUND = "outbound"  # From SystemIX to external
+
+class IntegrationPlatform(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    slug: str  # e.g., 'salesforce', 'hubspot'
+    type: IntegrationType
+    description: str
+    logo_url: str
+    website_url: str
+    documentation_url: Optional[str] = None
+    auth_type: AuthType
+    auth_config: Dict[str, Any] = {}  # OAuth endpoints, scopes, etc.
+    supported_features: List[str] = []  # ['contacts', 'deals', 'tasks']
+    api_base_url: str
+    rate_limits: Dict[str, int] = {}  # {'requests_per_hour': 1000}
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class IntegrationConnection(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    platform_id: str
+    platform_name: str
+    user_id: str
+    connection_name: str  # User-defined name for this connection
+    status: ConnectionStatus = ConnectionStatus.PENDING
+    
+    # Authentication data
+    access_token: Optional[str] = None
+    refresh_token: Optional[str] = None
+    token_expires_at: Optional[datetime] = None
+    api_key: Optional[str] = None
+    auth_data: Dict[str, Any] = {}  # Additional auth data
+    
+    # Configuration
+    sync_direction: SyncDirection = SyncDirection.BIDIRECTIONAL
+    sync_frequency: int = 60  # minutes
+    field_mappings: Dict[str, str] = {}  # SystemIX field -> External field
+    sync_filters: Dict[str, Any] = {}  # Conditions for syncing
+    
+    # Status tracking
+    last_sync_at: Optional[datetime] = None
+    next_sync_at: Optional[datetime] = None
+    total_syncs: int = 0
+    successful_syncs: int = 0
+    failed_syncs: int = 0
+    
+    # Metadata
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    is_active: bool = True
+
+class SyncJob(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    connection_id: str
+    platform_name: str
+    job_type: str  # 'scheduled', 'manual', 'webhook'
+    direction: SyncDirection
+    status: SyncStatus = SyncStatus.PENDING
+    
+    # Job details
+    data_type: str  # 'contacts', 'deals', 'tasks', etc.
+    records_to_sync: int = 0
+    records_processed: int = 0
+    records_success: int = 0
+    records_failed: int = 0
+    
+    # Execution info
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    error_message: Optional[str] = None
+    error_details: Dict[str, Any] = {}
+    
+    # Results
+    sync_summary: Dict[str, Any] = {}
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class WebhookEndpoint(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    connection_id: str
+    platform_name: str
+    endpoint_url: str
+    secret_key: str
+    events: List[str] = []  # ['contact.created', 'deal.updated']
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    last_triggered_at: Optional[datetime] = None
+    total_triggers: int = 0
+
+class IntegrationAnalytics(BaseModel):
+    connection_id: str
+    platform_name: str
+    date: datetime
+    sync_count: int = 0
+    success_rate: float = 0.0
+    avg_sync_duration: float = 0.0  # seconds
+    data_volume: int = 0  # records synced
+    error_count: int = 0
+    api_calls_made: int = 0
+
+# Request Models
+class IntegrationPlatformCreate(BaseModel):
+    name: str
+    slug: str
+    type: IntegrationType
+    description: str
+    logo_url: str
+    website_url: str
+    documentation_url: Optional[str] = None
+    auth_type: AuthType
+    auth_config: Dict[str, Any] = {}
+    supported_features: List[str] = []
+    api_base_url: str
+    rate_limits: Dict[str, int] = {}
+
+class ConnectionCreate(BaseModel):
+    platform_id: str
+    connection_name: str
+    sync_direction: SyncDirection = SyncDirection.BIDIRECTIONAL
+    sync_frequency: int = 60
+    field_mappings: Dict[str, str] = {}
+    sync_filters: Dict[str, Any] = {}
+    user_id: str
+
+class OAuthInitRequest(BaseModel):
+    platform_id: str
+    connection_name: str
+    redirect_uri: str
+    user_id: str
+
+class OAuthCallbackRequest(BaseModel):
+    platform_id: str
+    code: str
+    state: str
+    user_id: str
+
+class APIKeyConnectionRequest(BaseModel):
+    platform_id: str
+    connection_name: str
+    api_key: str
+    user_id: str
+    additional_config: Dict[str, Any] = {}
+
+class SyncJobCreate(BaseModel):
+    connection_id: str
+    job_type: str = "manual"
+    direction: SyncDirection
+    data_type: str
+
+class WebhookCreate(BaseModel):
+    connection_id: str
+    events: List[str]
+
+class FieldMappingUpdate(BaseModel):
+    connection_id: str
+    field_mappings: Dict[str, str]
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
