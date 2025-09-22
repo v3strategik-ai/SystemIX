@@ -2681,6 +2681,614 @@ async def initialize_integrations_sample_data():
         return {"message": "Sample integration platforms initialized successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# Settings & Configuration Helper Functions
+def validate_permission(user_role: UserRole, required_permission: str) -> bool:
+    """Validate if user role has required permission"""
+    role_permissions = {
+        UserRole.ADMIN: ["all"],
+        UserRole.MANAGER: ["read", "write", "manage_team", "configure_workflows"],
+        UserRole.USER: ["read", "write", "manage_own"],
+        UserRole.VIEWER: ["read"]
+    }
+    
+    user_perms = role_permissions.get(user_role, [])
+    return "all" in user_perms or required_permission in user_perms
+
+def apply_security_policy(password: str, policy_rules: Dict[str, Any]) -> Dict[str, Any]:
+    """Validate password against security policy"""
+    errors = []
+    
+    if len(password) < policy_rules.get("password_min_length", 8):
+        errors.append(f"Password must be at least {policy_rules.get('password_min_length', 8)} characters")
+    
+    if policy_rules.get("password_require_uppercase", True) and not any(c.isupper() for c in password):
+        errors.append("Password must contain at least one uppercase letter")
+    
+    if policy_rules.get("password_require_lowercase", True) and not any(c.islower() for c in password):
+        errors.append("Password must contain at least one lowercase letter")
+    
+    if policy_rules.get("password_require_numbers", True) and not any(c.isdigit() for c in password):
+        errors.append("Password must contain at least one number")
+    
+    if policy_rules.get("password_require_symbols", True) and not any(c in "!@#$%^&*()_+-=[]{}|;:,.<>?" for c in password):
+        errors.append("Password must contain at least one symbol")
+    
+    return {"valid": len(errors) == 0, "errors": errors}
+
+def evaluate_business_rule_condition(condition: Dict[str, Any], data: Dict[str, Any]) -> bool:
+    """Evaluate if business rule condition is met"""
+    try:
+        # Simple condition evaluation - in production, use a proper rule engine
+        operator = condition.get("operator", "equals")
+        field = condition.get("field")
+        value = condition.get("value")
+        
+        if not field or field not in data:
+            return False
+        
+        data_value = data[field]
+        
+        if operator == "equals":
+            return data_value == value
+        elif operator == "not_equals":
+            return data_value != value
+        elif operator == "greater_than":
+            return float(data_value) > float(value)
+        elif operator == "less_than":
+            return float(data_value) < float(value)
+        elif operator == "contains":
+            return str(value).lower() in str(data_value).lower()
+        elif operator == "starts_with":
+            return str(data_value).lower().startswith(str(value).lower())
+        elif operator == "in_list":
+            return data_value in value if isinstance(value, list) else False
+        
+        return False
+    except:
+        return False
+
+async def execute_business_rule_actions(actions: List[Dict[str, Any]], data: Dict[str, Any]):
+    """Execute business rule actions"""
+    for action in actions:
+        action_type = action.get("type")
+        
+        if action_type == "assign_task":
+            # Create a task assignment
+            pass
+        elif action_type == "send_notification":
+            # Send notification
+            pass
+        elif action_type == "update_field":
+            # Update a field value
+            pass
+        elif action_type == "create_workflow":
+            # Trigger workflow creation
+            pass
+
+# Settings & Configuration API Routes
+@api_router.get("/settings/users", response_model=List[UserProfile])
+async def get_user_profiles():
+    """Get all user profiles (admin only)"""
+    profiles_cursor = db.user_profiles.find().sort("full_name", 1)
+    profiles = await profiles_cursor.to_list(1000)
+    return [UserProfile(**profile) for profile in profiles]
+
+@api_router.post("/settings/users", response_model=UserProfile)
+async def create_user_profile(user_data: UserProfileCreate):
+    """Create a new user profile"""
+    # Check if username/email already exists
+    existing_user = await db.user_profiles.find_one({
+        "$or": [
+            {"username": user_data.username},
+            {"email": user_data.email}
+        ]
+    })
+    
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Username or email already exists")
+    
+    user_profile = UserProfile(
+        user_id=str(uuid.uuid4()),
+        **user_data.dict()
+    )
+    
+    await db.user_profiles.insert_one(user_profile.dict())
+    return user_profile
+
+@api_router.get("/settings/users/{user_id}", response_model=UserProfile)
+async def get_user_profile(user_id: str):
+    """Get a specific user profile"""
+    profile = await db.user_profiles.find_one({"user_id": user_id})
+    if not profile:
+        raise HTTPException(status_code=404, detail="User profile not found")
+    return UserProfile(**profile)
+
+@api_router.put("/settings/users/{user_id}", response_model=UserProfile)
+async def update_user_profile(user_id: str, user_update: UserProfileUpdate):
+    """Update user profile"""
+    profile = await db.user_profiles.find_one({"user_id": user_id})
+    if not profile:
+        raise HTTPException(status_code=404, detail="User profile not found")
+    
+    update_data = {k: v for k, v in user_update.dict().items() if v is not None}
+    update_data["updated_at"] = datetime.utcnow()
+    
+    await db.user_profiles.update_one({"user_id": user_id}, {"$set": update_data})
+    updated_profile = await db.user_profiles.find_one({"user_id": user_id})
+    return UserProfile(**updated_profile)
+
+@api_router.get("/settings/system", response_model=List[SystemSettings])
+async def get_system_settings(category: Optional[str] = None):
+    """Get system settings"""
+    filter_query = {}
+    if category:
+        filter_query["category"] = category
+    
+    settings_cursor = db.system_settings.find(filter_query).sort("category", 1)
+    settings = await settings_cursor.to_list(1000)
+    return [SystemSettings(**setting) for setting in settings]
+
+@api_router.put("/settings/system", response_model=SystemSettings)
+async def update_system_setting(setting_update: SystemSettingUpdate):
+    """Update a system setting"""
+    setting_data = SystemSettings(
+        category=setting_update.category,
+        key=setting_update.key,
+        value=setting_update.value,
+        data_type=setting_update.data_type,
+        description=setting_update.description or "",
+        updated_by="current_user"
+    )
+    
+    # Upsert the setting
+    await db.system_settings.update_one(
+        {"category": setting_update.category, "key": setting_update.key},
+        {"$set": setting_data.dict()},
+        upsert=True
+    )
+    
+    updated_setting = await db.system_settings.find_one({
+        "category": setting_update.category,
+        "key": setting_update.key
+    })
+    return SystemSettings(**updated_setting)
+
+@api_router.get("/settings/security", response_model=SecurityPolicy)
+async def get_security_policy():
+    """Get current security policy"""
+    policy = await db.security_policies.find_one({"is_active": True})
+    if not policy:
+        # Create default policy
+        default_policy = SecurityPolicy(
+            name="Default Security Policy",
+            description="Default security policy for SystemIX AI",
+            created_by="system"
+        )
+        await db.security_policies.insert_one(default_policy.dict())
+        return default_policy
+    
+    return SecurityPolicy(**policy)
+
+@api_router.put("/settings/security", response_model=SecurityPolicy)
+async def update_security_policy(policy_update: SecurityPolicyUpdate):
+    """Update security policy"""
+    policy = await db.security_policies.find_one({"is_active": True})
+    if not policy:
+        raise HTTPException(status_code=404, detail="Security policy not found")
+    
+    update_data = {
+        "rules": policy_update.rules,
+        "updated_at": datetime.utcnow()
+    }
+    
+    await db.security_policies.update_one(
+        {"id": policy["id"]},
+        {"$set": update_data}
+    )
+    
+    updated_policy = await db.security_policies.find_one({"id": policy["id"]})
+    return SecurityPolicy(**updated_policy)
+
+@api_router.get("/settings/backup", response_model=BackupSettings)
+async def get_backup_settings():
+    """Get backup settings"""
+    settings = await db.backup_settings.find_one({"is_active": True})
+    if not settings:
+        # Create default backup settings
+        default_settings = BackupSettings(updated_by="system")
+        await db.backup_settings.insert_one(default_settings.dict())
+        return default_settings
+    
+    return BackupSettings(**settings)
+
+@api_router.put("/settings/backup", response_model=BackupSettings)
+async def update_backup_settings(backup_data: Dict[str, Any]):
+    """Update backup settings"""
+    settings = await db.backup_settings.find_one({"is_active": True})
+    if not settings:
+        raise HTTPException(status_code=404, detail="Backup settings not found")
+    
+    backup_data["updated_at"] = datetime.utcnow()
+    backup_data["updated_by"] = "current_user"
+    
+    await db.backup_settings.update_one(
+        {"id": settings["id"]},
+        {"$set": backup_data}
+    )
+    
+    updated_settings = await db.backup_settings.find_one({"id": settings["id"]})
+    return BackupSettings(**updated_settings)
+
+@api_router.get("/settings/webhooks", response_model=List[WebhookConfiguration])
+async def get_webhook_configurations():
+    """Get webhook configurations"""
+    webhooks_cursor = db.webhook_configurations.find({"is_active": True}).sort("name", 1)
+    webhooks = await webhooks_cursor.to_list(1000)
+    return [WebhookConfiguration(**webhook) for webhook in webhooks]
+
+@api_router.post("/settings/webhooks", response_model=WebhookConfiguration)
+async def create_webhook_configuration(webhook_data: WebhookConfigurationCreate):
+    """Create webhook configuration"""
+    webhook = WebhookConfiguration(
+        **webhook_data.dict(),
+        secret_key=str(uuid.uuid4())  # Generate secret key
+    )
+    
+    await db.webhook_configurations.insert_one(webhook.dict())
+    return webhook
+
+@api_router.delete("/settings/webhooks/{webhook_id}")
+async def delete_webhook_configuration(webhook_id: str):
+    """Delete webhook configuration"""
+    result = await db.webhook_configurations.update_one(
+        {"id": webhook_id},
+        {"$set": {"is_active": False}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Webhook configuration not found")
+    
+    return {"message": "Webhook configuration deleted"}
+
+@api_router.get("/settings/rate-limits", response_model=List[RateLimitSettings])
+async def get_rate_limit_settings():
+    """Get rate limit settings"""
+    limits_cursor = db.rate_limit_settings.find({"is_active": True}).sort("resource", 1)
+    limits = await limits_cursor.to_list(1000)
+    return [RateLimitSettings(**limit) for limit in limits]
+
+@api_router.put("/settings/rate-limits/{limit_id}", response_model=RateLimitSettings)
+async def update_rate_limit_setting(limit_id: str, limit_data: Dict[str, Any]):
+    """Update rate limit settings"""
+    limit_setting = await db.rate_limit_settings.find_one({"id": limit_id})
+    if not limit_setting:
+        raise HTTPException(status_code=404, detail="Rate limit setting not found")
+    
+    limit_data["updated_at"] = datetime.utcnow()
+    limit_data["updated_by"] = "current_user"
+    
+    await db.rate_limit_settings.update_one(
+        {"id": limit_id},
+        {"$set": limit_data}
+    )
+    
+    updated_setting = await db.rate_limit_settings.find_one({"id": limit_id})
+    return RateLimitSettings(**updated_setting)
+
+@api_router.get("/settings/ai-task-rules", response_model=List[AITaskRule])
+async def get_ai_task_rules():
+    """Get AI task assignment rules"""
+    rules_cursor = db.ai_task_rules.find({"is_active": True}).sort("priority", -1)
+    rules = await rules_cursor.to_list(1000)
+    return [AITaskRule(**rule) for rule in rules]
+
+@api_router.post("/settings/ai-task-rules", response_model=AITaskRule)
+async def create_ai_task_rule(rule_data: AITaskRuleCreate):
+    """Create AI task assignment rule"""
+    rule = AITaskRule(**rule_data.dict())
+    await db.ai_task_rules.insert_one(rule.dict())
+    return rule
+
+@api_router.get("/settings/business-rules", response_model=List[BusinessRule])
+async def get_business_rules(module: Optional[str] = None):
+    """Get business rules"""
+    filter_query = {"is_active": True}
+    if module:
+        filter_query["module"] = module
+    
+    rules_cursor = db.business_rules.find(filter_query).sort("priority", -1)
+    rules = await rules_cursor.to_list(1000)
+    return [BusinessRule(**rule) for rule in rules]
+
+@api_router.post("/settings/business-rules", response_model=BusinessRule)
+async def create_business_rule(rule_data: BusinessRuleCreate):
+    """Create business rule"""
+    rule = BusinessRule(**rule_data.dict())
+    await db.business_rules.insert_one(rule.dict())
+    return rule
+
+@api_router.put("/settings/business-rules/{rule_id}", response_model=BusinessRule)
+async def update_business_rule(rule_id: str, rule_data: Dict[str, Any]):
+    """Update business rule"""
+    rule = await db.business_rules.find_one({"id": rule_id})
+    if not rule:
+        raise HTTPException(status_code=404, detail="Business rule not found")
+    
+    rule_data["updated_at"] = datetime.utcnow()
+    
+    await db.business_rules.update_one(
+        {"id": rule_id},
+        {"$set": rule_data}
+    )
+    
+    updated_rule = await db.business_rules.find_one({"id": rule_id})
+    return BusinessRule(**updated_rule)
+
+@api_router.get("/settings/dashboard-widgets/{user_id}", response_model=List[DashboardWidget])
+async def get_dashboard_widgets(user_id: str):
+    """Get dashboard widgets for user"""
+    widgets_cursor = db.dashboard_widgets.find({"user_id": user_id, "is_visible": True}).sort("position.y", 1)
+    widgets = await widgets_cursor.to_list(1000)
+    return [DashboardWidget(**widget) for widget in widgets]
+
+@api_router.put("/settings/dashboard-widgets/{widget_id}", response_model=DashboardWidget)
+async def update_dashboard_widget(widget_id: str, widget_update: DashboardWidgetUpdate):
+    """Update dashboard widget"""
+    widget = await db.dashboard_widgets.find_one({"id": widget_id})
+    if not widget:
+        raise HTTPException(status_code=404, detail="Widget not found")
+    
+    update_data = {k: v for k, v in widget_update.dict().items() if v is not None}
+    update_data["updated_at"] = datetime.utcnow()
+    
+    await db.dashboard_widgets.update_one(
+        {"id": widget_id},
+        {"$set": update_data}
+    )
+    
+    updated_widget = await db.dashboard_widgets.find_one({"id": widget_id})
+    return DashboardWidget(**updated_widget)
+
+@api_router.get("/settings/menu-config/{role}", response_model=MenuConfiguration)
+async def get_menu_configuration(role: UserRole):
+    """Get menu configuration for role"""
+    config = await db.menu_configurations.find_one({"user_role": role.value})
+    if not config:
+        # Create default menu config
+        default_config = MenuConfiguration(
+            user_role=role,
+            menu_items=[
+                {"name": "Dashboard", "path": "/", "icon": "dashboard", "visible": True},
+                {"name": "Lead Generation", "path": "/leads", "icon": "users", "visible": True},
+                {"name": "Quoting Tool", "path": "/quotes", "icon": "document", "visible": True},
+                {"name": "Task Management", "path": "/tasks", "icon": "checklist", "visible": True},
+                {"name": "Workflow Automation", "path": "/workflows", "icon": "workflow", "visible": True},
+                {"name": "Team Management", "path": "/team", "icon": "team", "visible": True},
+                {"name": "Calendar", "path": "/calendar", "icon": "calendar", "visible": True},
+                {"name": "Document Center", "path": "/documents", "icon": "folder", "visible": True},
+                {"name": "Integrations Hub", "path": "/integrations", "icon": "link", "visible": True},
+                {"name": "Settings", "path": "/settings", "icon": "settings", "visible": role in [UserRole.ADMIN, UserRole.MANAGER]}
+            ],
+            updated_by="system"
+        )
+        await db.menu_configurations.insert_one(default_config.dict())
+        return default_config
+    
+    return MenuConfiguration(**config)
+
+@api_router.put("/settings/menu-config/{role}", response_model=MenuConfiguration)
+async def update_menu_configuration(role: UserRole, menu_data: Dict[str, Any]):
+    """Update menu configuration for role"""
+    config = await db.menu_configurations.find_one({"user_role": role.value})
+    if not config:
+        raise HTTPException(status_code=404, detail="Menu configuration not found")
+    
+    menu_data["updated_at"] = datetime.utcnow()
+    menu_data["updated_by"] = "current_user"
+    
+    await db.menu_configurations.update_one(
+        {"user_role": role.value},
+        {"$set": menu_data}
+    )
+    
+    updated_config = await db.menu_configurations.find_one({"user_role": role.value})
+    return MenuConfiguration(**updated_config)
+
+@api_router.get("/settings/ai", response_model=List[AISettings])
+async def get_ai_settings():
+    """Get AI settings"""
+    settings_cursor = db.ai_settings.find().sort("category", 1)
+    settings = await settings_cursor.to_list(1000)
+    return [AISettings(**setting) for setting in settings]
+
+@api_router.put("/settings/ai", response_model=AISettings)
+async def update_ai_settings(settings_update: AISettingsUpdate):
+    """Update AI settings"""
+    # Upsert AI settings by category
+    setting_data = AISettings(
+        category=settings_update.category,
+        settings=settings_update.settings,
+        updated_by="current_user"
+    )
+    
+    await db.ai_settings.update_one(
+        {"category": settings_update.category},
+        {"$set": setting_data.dict()},
+        upsert=True
+    )
+    
+    updated_setting = await db.ai_settings.find_one({"category": settings_update.category})
+    return AISettings(**updated_setting)
+
+@api_router.get("/settings/notifications/{user_id}", response_model=NotificationSettings)
+async def get_notification_settings(user_id: str):
+    """Get notification settings for user"""
+    settings = await db.notification_settings.find_one({"user_id": user_id})
+    if not settings:
+        # Create default notification settings
+        default_settings = NotificationSettings(user_id=user_id)
+        await db.notification_settings.insert_one(default_settings.dict())
+        return default_settings
+    
+    return NotificationSettings(**settings)
+
+@api_router.put("/settings/notifications/{user_id}", response_model=NotificationSettings)
+async def update_notification_settings(user_id: str, notification_data: Dict[str, Any]):
+    """Update notification settings"""
+    notification_data["updated_at"] = datetime.utcnow()
+    
+    await db.notification_settings.update_one(
+        {"user_id": user_id},
+        {"$set": notification_data},
+        upsert=True
+    )
+    
+    updated_settings = await db.notification_settings.find_one({"user_id": user_id})
+    return NotificationSettings(**updated_settings)
+
+@api_router.post("/settings/initialize-sample-data")
+async def initialize_settings_sample_data():
+    """Initialize sample settings and configurations"""
+    try:
+        # Clear existing data
+        await db.user_profiles.delete_many({})
+        await db.system_settings.delete_many({})
+        await db.ai_settings.delete_many({})
+        await db.rate_limit_settings.delete_many({})
+        
+        # Create sample user profiles
+        sample_users = [
+            UserProfile(
+                user_id="admin_001",
+                username="admin",
+                email="admin@systemix.ai",
+                full_name="System Administrator",
+                role=UserRole.ADMIN,
+                department="IT",
+                permissions=["all"]
+            ),
+            UserProfile(
+                user_id="manager_001",
+                username="sales_manager",
+                email="manager@systemix.ai",
+                full_name="Sales Manager",
+                role=UserRole.MANAGER,
+                department="Sales",
+                permissions=["read", "write", "manage_team"]
+            ),
+            UserProfile(
+                user_id="user_001",
+                username="sales_rep",
+                email="user@systemix.ai",
+                full_name="Sales Representative",
+                role=UserRole.USER,
+                department="Sales",
+                permissions=["read", "write"]
+            )
+        ]
+        
+        for user in sample_users:
+            await db.user_profiles.insert_one(user.dict())
+        
+        # Create sample system settings
+        sample_settings = [
+            SystemSettings(
+                category="general",
+                key="company_name",
+                value="SystemIX AI Demo",
+                data_type="string",
+                description="Company name displayed in the application",
+                is_public=True,
+                updated_by="system"
+            ),
+            SystemSettings(
+                category="general",
+                key="timezone",
+                value="UTC",
+                data_type="string",
+                description="Default timezone for the application",
+                is_public=True,
+                updated_by="system"
+            ),
+            SystemSettings(
+                category="security",
+                key="session_timeout",
+                value=480,
+                data_type="number",
+                description="Session timeout in minutes",
+                is_public=False,
+                updated_by="system"
+            )
+        ]
+        
+        for setting in sample_settings:
+            await db.system_settings.insert_one(setting.dict())
+        
+        # Create sample AI settings
+        sample_ai_settings = [
+            AISettings(
+                category="model",
+                settings={
+                    "preferred_model": "gpt-4",
+                    "confidence_threshold": 0.8,
+                    "max_tokens": 1000,
+                    "temperature": 0.7
+                },
+                updated_by="system"
+            ),
+            AISettings(
+                category="scoring",
+                settings={
+                    "algorithm": "ml_enhanced",
+                    "factors": {
+                        "company_size": 0.3,
+                        "industry_match": 0.2,
+                        "engagement_level": 0.3,
+                        "budget_qualification": 0.2
+                    }
+                },
+                updated_by="system"
+            ),
+            AISettings(
+                category="assistant",
+                settings={
+                    "personality": "professional",
+                    "response_length": "medium",
+                    "proactive_suggestions": True,
+                    "learning_enabled": True
+                },
+                updated_by="system"
+            )
+        ]
+        
+        for ai_setting in sample_ai_settings:
+            await db.ai_settings.insert_one(ai_setting.dict())
+        
+        # Create sample rate limit settings
+        sample_rate_limits = [
+            RateLimitSettings(
+                resource="api",
+                limit_per_hour=1000,
+                limit_per_day=10000,
+                burst_limit=100,
+                updated_by="system"
+            ),
+            RateLimitSettings(
+                resource="ai_requests",
+                limit_per_hour=500,
+                limit_per_day=2000,
+                burst_limit=50,
+                updated_by="system"
+            )
+        ]
+        
+        for rate_limit in sample_rate_limits:
+            await db.rate_limit_settings.insert_one(rate_limit.dict())
+        
+        return {"message": "Sample settings data initialized successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 @api_router.post("/initialize-mock-data")
 async def initialize_mock_data():
     """Initialize the system with mock data"""
