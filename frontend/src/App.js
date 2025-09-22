@@ -122,6 +122,7 @@ function App() {
                 <Route path="/team" element={<TeamManagement />} />
                 <Route path="/calendar" element={<Calendar />} />
                 <Route path="/quotes" element={<QuotingTool />} />
+                <Route path="/documents" element={<DocumentCenter />} />
               </Routes>
             </main>
           </div>
