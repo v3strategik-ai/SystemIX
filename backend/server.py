@@ -1171,6 +1171,84 @@ async def initialize_quote_sample_data():
         return {"message": "Sample quoting data initialized successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# Document Center Helper Functions
+async def convert_file(file_content: bytes, source_format: FileFormat, target_format: FileFormat, title: str = "document") -> bytes:
+    """Convert files between different formats"""
+    try:
+        if source_format == FileFormat.DOCX and target_format == FileFormat.PDF:
+            # Convert DOCX to PDF
+            doc = DocxDocument(io.BytesIO(file_content))
+            
+            # Create PDF
+            pdf_buffer = io.BytesIO()
+            pdf = SimpleDocTemplate(pdf_buffer, pagesize=A4)
+            styles = getSampleStyleSheet()
+            story = []
+            
+            for paragraph in doc.paragraphs:
+                if paragraph.text.strip():
+                    p = Paragraph(paragraph.text, styles['Normal'])
+                    story.append(p)
+                    story.append(Spacer(1, 12))
+            
+            pdf.build(story)
+            return pdf_buffer.getvalue()
+            
+        elif source_format == FileFormat.XLSX and target_format == FileFormat.PDF:
+            # Convert XLSX to PDF
+            wb = load_workbook(io.BytesIO(file_content))
+            ws = wb.active
+            
+            pdf_buffer = io.BytesIO()
+            pdf = SimpleDocTemplate(pdf_buffer, pagesize=A4)
+            styles = getSampleStyleSheet()
+            story = []
+            
+            for row in ws.iter_rows(values_only=True):
+                row_text = " | ".join([str(cell) if cell is not None else "" for cell in row])
+                if row_text.strip():
+                    p = Paragraph(row_text, styles['Normal'])
+                    story.append(p)
+                    story.append(Spacer(1, 6))
+            
+            pdf.build(story)
+            return pdf_buffer.getvalue()
+            
+        elif source_format == FileFormat.HTML and target_format == FileFormat.PDF:
+            # Convert HTML to PDF
+            pdf_buffer = io.BytesIO()
+            pdf = SimpleDocTemplate(pdf_buffer, pagesize=A4)
+            styles = getSampleStyleSheet()
+            story = []
+            
+            # Simple HTML to text conversion for demo
+            import re
+            clean_text = re.sub('<[^<]+?>', '', file_content.decode('utf-8'))
+            paragraphs = clean_text.split('\n')
+            
+            for para in paragraphs:
+                if para.strip():
+                    p = Paragraph(para.strip(), styles['Normal'])
+                    story.append(p)
+                    story.append(Spacer(1, 12))
+            
+            pdf.build(story)
+            return pdf_buffer.getvalue()
+        
+        else:
+            raise HTTPException(status_code=400, detail=f"Conversion from {source_format} to {target_format} not supported")
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"File conversion failed: {str(e)}")
+
+async def generate_template_thumbnail(template_content: str) -> str:
+    """Generate thumbnail for template (placeholder implementation)"""
+    # In a real implementation, you'd generate an actual thumbnail
+    # For now, return a placeholder image URL
+    svg_content = '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="140" viewBox="0 0 100 140"><rect width="100" height="140" fill="#f3f4f6"/><text x="50" y="70" text-anchor="middle" fill="#6b7280" font-size="12">Template</text></svg>'
+    encoded_svg = base64.b64encode(svg_content.encode()).decode()
+    return f"data:image/svg+xml;base64,{encoded_svg}"
 @api_router.post("/initialize-mock-data")
 async def initialize_mock_data():
     """Initialize the system with mock data"""
