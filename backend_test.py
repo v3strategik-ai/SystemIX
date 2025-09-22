@@ -229,6 +229,116 @@ class SystemIXAPITester:
         
         return self.run_test("AI Chat Message", "POST", "chat/message", 200, chat_data, timeout=60)
 
+    def test_quoting_endpoints(self):
+        """Test comprehensive quoting functionality"""
+        print("\n💰 Running Quoting Tool Tests...")
+        
+        # 1. Initialize sample data
+        init_success, _ = self.run_test(
+            "Initialize Quote Sample Data", 
+            "POST", 
+            "quotes/initialize-sample-data", 
+            200
+        )
+        
+        # 2. Get products/services
+        products_success, products = self.run_test(
+            "Get Products/Services", 
+            "GET", 
+            "products-services", 
+            200
+        )
+        
+        # 3. Get quotes analytics summary
+        analytics_success, analytics = self.run_test(
+            "Get Quotes Analytics Summary", 
+            "GET", 
+            "quotes/analytics/summary", 
+            200
+        )
+        
+        # 4. Get all quotes
+        quotes_success, quotes = self.run_test(
+            "Get All Quotes", 
+            "GET", 
+            "quotes", 
+            200
+        )
+        
+        # 5. Create a new quote (if we have products)
+        create_success = False
+        created_quote = {}
+        
+        if products_success and products and len(products) > 0:
+            # Use first product for line item
+            first_product = products[0]
+            
+            new_quote_data = {
+                "title": "Test Quote - API Testing",
+                "customer_name": "Test Customer",
+                "customer_email": "testcustomer@example.com",
+                "customer_phone": "+1-555-0199",
+                "customer_address": {
+                    "street": "123 Test St",
+                    "city": "Test City",
+                    "state": "TS",
+                    "zip": "12345"
+                },
+                "line_items": [
+                    {
+                        "product_service_id": first_product["id"],
+                        "quantity": 2.0,
+                        "discount_percentage": 10.0,
+                        "pricing_tier": "standard"
+                    }
+                ],
+                "tax_settings": {
+                    "tax_rate": 8.5,
+                    "tax_name": "Sales Tax"
+                },
+                "notes": "This is a test quote created via API",
+                "terms_conditions": "Standard terms and conditions apply",
+                "expires_in_days": 30,
+                "e_signature_required": True,
+                "created_by": "api_tester"
+            }
+            
+            create_success, created_quote = self.run_test(
+                "Create New Quote", 
+                "POST", 
+                "quotes", 
+                200, 
+                new_quote_data
+            )
+            
+            # 6. Get specific quote if creation was successful
+            if create_success and 'id' in created_quote:
+                self.run_test(
+                    "Get Specific Quote", 
+                    "GET", 
+                    f"quotes/{created_quote['id']}", 
+                    200
+                )
+                
+                # 7. Send the quote
+                self.run_test(
+                    "Send Quote", 
+                    "POST", 
+                    f"quotes/{created_quote['id']}/send", 
+                    200
+                )
+                
+                # 8. Get quote analytics
+                self.run_test(
+                    "Get Quote Analytics", 
+                    "GET", 
+                    f"quotes/{created_quote['id']}/analytics", 
+                    200
+                )
+        
+        return (init_success and products_success and analytics_success and 
+                quotes_success and create_success)
+
 def main():
     print("🚀 Starting SystemIX AI Platinum Suite API Tests")
     print("=" * 60)
