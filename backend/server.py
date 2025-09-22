@@ -1815,6 +1815,573 @@ async def initialize_document_sample_data():
         return {"message": "Sample document data initialized successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# Integrations Hub Helper Functions
+def get_platform_oauth_config(platform_slug: str) -> Dict[str, Any]:
+    """Get OAuth configuration for different platforms"""
+    oauth_configs = {
+        'salesforce': {
+            'authorization_base_url': 'https://login.salesforce.com/services/oauth2/authorize',
+            'token_url': 'https://login.salesforce.com/services/oauth2/token',
+            'scopes': ['api', 'refresh_token', 'offline_access']
+        },
+        'hubspot': {
+            'authorization_base_url': 'https://app.hubspot.com/oauth/authorize',
+            'token_url': 'https://api.hubapi.com/oauth/v1/token',
+            'scopes': ['contacts', 'content', 'timeline']
+        },
+        'pipedrive': {
+            'authorization_base_url': 'https://oauth.pipedrive.com/oauth/authorize',
+            'token_url': 'https://oauth.pipedrive.com/oauth/token',
+            'scopes': ['read', 'write']
+        },
+        'stripe': {
+            'authorization_base_url': 'https://connect.stripe.com/oauth/authorize',
+            'token_url': 'https://connect.stripe.com/oauth/token',
+            'scopes': ['read_write']
+        },
+        'mailchimp': {
+            'authorization_base_url': 'https://login.mailchimp.com/oauth2/authorize',
+            'token_url': 'https://login.mailchimp.com/oauth2/token',
+            'scopes': ['read', 'write']
+        },
+        'slack': {
+            'authorization_base_url': 'https://slack.com/oauth/v2/authorize',
+            'token_url': 'https://slack.com/api/oauth.v2.access',
+            'scopes': ['channels:read', 'chat:write', 'users:read']
+        }
+    }
+    return oauth_configs.get(platform_slug, {})
+
+async def simulate_external_api_call(platform_slug: str, endpoint: str, method: str = "GET", data: Dict = None) -> Dict[str, Any]:
+    """Simulate external API calls for demo purposes"""
+    # In production, this would make actual API calls
+    simulated_responses = {
+        'salesforce': {
+            'contacts': {
+                'records': [
+                    {'Id': '003XX000000001', 'FirstName': 'John', 'LastName': 'Doe', 'Email': 'john.doe@example.com'},
+                    {'Id': '003XX000000002', 'FirstName': 'Jane', 'LastName': 'Smith', 'Email': 'jane.smith@example.com'}
+                ]
+            },
+            'opportunities': {
+                'records': [
+                    {'Id': '006XX000000001', 'Name': 'Big Deal', 'Amount': 50000, 'StageName': 'Prospecting'},
+                    {'Id': '006XX000000002', 'Name': 'Small Deal', 'Amount': 5000, 'StageName': 'Closed Won'}
+                ]
+            }
+        },
+        'hubspot': {
+            'contacts': {
+                'results': [
+                    {'id': '1', 'properties': {'firstname': 'Bob', 'lastname': 'Johnson', 'email': 'bob@example.com'}},
+                    {'id': '2', 'properties': {'firstname': 'Alice', 'lastname': 'Brown', 'email': 'alice@example.com'}}
+                ]
+            }
+        },
+        'stripe': {
+            'customers': {
+                'data': [
+                    {'id': 'cus_1', 'email': 'customer1@example.com', 'name': 'Customer One'},
+                    {'id': 'cus_2', 'email': 'customer2@example.com', 'name': 'Customer Two'}
+                ]
+            }
+        }
+    }
+    
+    return simulated_responses.get(platform_slug, {}).get(endpoint, {'message': 'Simulated API response'})
+
+async def perform_data_sync(connection: IntegrationConnection, data_type: str, direction: SyncDirection) -> Dict[str, Any]:
+    """Perform data synchronization between SystemIX and external platform"""
+    try:
+        sync_results = {
+            'records_processed': 0,
+            'records_success': 0,
+            'records_failed': 0,
+            'errors': []
+        }
+        
+        if direction in [SyncDirection.INBOUND, SyncDirection.BIDIRECTIONAL]:
+            # Simulate fetching data from external platform
+            external_data = await simulate_external_api_call(connection.platform_name.lower(), data_type)
+            
+            # Process and sync data
+            if data_type == 'contacts' and external_data:
+                records = external_data.get('records', external_data.get('results', external_data.get('data', [])))
+                
+                for record in records:
+                    try:
+                        # Transform external data to SystemIX format
+                        systemix_record = transform_external_data(record, connection.field_mappings, data_type)
+                        
+                        # In production, this would save to SystemIX database
+                        sync_results['records_success'] += 1
+                    except Exception as e:
+                        sync_results['records_failed'] += 1
+                        sync_results['errors'].append(str(e))
+                    
+                    sync_results['records_processed'] += 1
+        
+        return sync_results
+    except Exception as e:
+        return {
+            'records_processed': 0,
+            'records_success': 0,
+            'records_failed': 0,
+            'errors': [str(e)]
+        }
+
+def transform_external_data(external_record: Dict, field_mappings: Dict[str, str], data_type: str) -> Dict[str, Any]:
+    """Transform external platform data to SystemIX format"""
+    systemix_record = {}
+    
+    # Default field mappings for different data types
+    default_mappings = {
+        'contacts': {
+            'name': ['Name', 'firstname', 'FirstName', 'full_name'],
+            'email': ['Email', 'email', 'email_address'],
+            'phone': ['Phone', 'phone', 'phone_number'],
+            'company': ['Company', 'company', 'Account.Name']
+        }
+    }
+    
+    # Use custom mappings or defaults
+    mappings = field_mappings if field_mappings else default_mappings.get(data_type, {})
+    
+    for systemix_field, external_fields in mappings.items():
+        if isinstance(external_fields, str):
+            external_fields = [external_fields]
+        
+        for external_field in external_fields:
+            if external_field in external_record:
+                systemix_record[systemix_field] = external_record[external_field]
+                break
+            elif '.' in external_field:
+                # Handle nested fields like Account.Name
+                nested_value = external_record
+                for part in external_field.split('.'):
+                    if isinstance(nested_value, dict) and part in nested_value:
+                        nested_value = nested_value[part]
+                    else:
+                        nested_value = None
+                        break
+                if nested_value:
+                    systemix_record[systemix_field] = nested_value
+                    break
+    
+    return systemix_record
+
+# Integrations Hub API Routes
+@api_router.get("/integrations/platforms", response_model=List[IntegrationPlatform])
+async def get_integration_platforms():
+    """Get all available integration platforms"""
+    platforms_cursor = db.integration_platforms.find({"is_active": True}).sort("name", 1)
+    platforms = await platforms_cursor.to_list(1000)
+    return [IntegrationPlatform(**platform) for platform in platforms]
+
+@api_router.post("/integrations/platforms", response_model=IntegrationPlatform)
+async def create_integration_platform(platform_data: IntegrationPlatformCreate):
+    """Create a new integration platform"""
+    platform = IntegrationPlatform(**platform_data.dict())
+    await db.integration_platforms.insert_one(platform.dict())
+    return platform
+
+@api_router.get("/integrations/connections", response_model=List[IntegrationConnection])
+async def get_integration_connections(user_id: Optional[str] = None, platform_id: Optional[str] = None):
+    """Get integration connections with optional filters"""
+    filter_query = {}
+    if user_id:
+        filter_query["user_id"] = user_id
+    if platform_id:
+        filter_query["platform_id"] = platform_id
+    
+    connections_cursor = db.integration_connections.find(filter_query).sort("created_at", -1)
+    connections = await connections_cursor.to_list(1000)
+    return [IntegrationConnection(**connection) for connection in connections]
+
+@api_router.post("/integrations/oauth/initiate")
+async def initiate_oauth_flow(oauth_request: OAuthInitRequest):
+    """Initiate OAuth flow for a platform"""
+    try:
+        platform = await db.integration_platforms.find_one({"id": oauth_request.platform_id})
+        if not platform:
+            raise HTTPException(status_code=404, detail="Platform not found")
+        
+        oauth_config = get_platform_oauth_config(platform["slug"])
+        if not oauth_config:
+            raise HTTPException(status_code=400, detail="OAuth not supported for this platform")
+        
+        # In production, you would use actual OAuth2Session
+        # For demo, return a simulated authorization URL
+        state = str(uuid.uuid4())
+        
+        # Store OAuth state for verification
+        oauth_state = {
+            "state": state,
+            "platform_id": oauth_request.platform_id,
+            "connection_name": oauth_request.connection_name,
+            "user_id": oauth_request.user_id,
+            "redirect_uri": oauth_request.redirect_uri,
+            "created_at": datetime.utcnow()
+        }
+        await db.oauth_states.insert_one(oauth_state)
+        
+        # Simulate authorization URL
+        auth_url = f"{oauth_config['authorization_base_url']}?response_type=code&client_id=demo_client_id&redirect_uri={oauth_request.redirect_uri}&state={state}&scope={'+'.join(oauth_config.get('scopes', []))}"
+        
+        return {
+            "authorization_url": auth_url,
+            "state": state,
+            "platform_name": platform["name"]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/integrations/oauth/callback")
+async def handle_oauth_callback(callback_request: OAuthCallbackRequest):
+    """Handle OAuth callback and create connection"""
+    try:
+        # Verify state
+        oauth_state = await db.oauth_states.find_one({"state": callback_request.state})
+        if not oauth_state:
+            raise HTTPException(status_code=400, detail="Invalid OAuth state")
+        
+        platform = await db.integration_platforms.find_one({"id": callback_request.platform_id})
+        if not platform:
+            raise HTTPException(status_code=404, detail="Platform not found")
+        
+        # In production, exchange code for tokens
+        # For demo, create a simulated connection
+        connection = IntegrationConnection(
+            platform_id=callback_request.platform_id,
+            platform_name=platform["name"],
+            user_id=callback_request.user_id,
+            connection_name=oauth_state["connection_name"],
+            status=ConnectionStatus.CONNECTED,
+            access_token="demo_access_token",
+            refresh_token="demo_refresh_token",
+            token_expires_at=datetime.utcnow() + timedelta(hours=1),
+            next_sync_at=datetime.utcnow() + timedelta(minutes=60)
+        )
+        
+        await db.integration_connections.insert_one(connection.dict())
+        
+        # Clean up OAuth state
+        await db.oauth_states.delete_one({"state": callback_request.state})
+        
+        return {
+            "message": "Connection established successfully",
+            "connection_id": connection.id,
+            "platform_name": platform["name"]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/integrations/api-key-connection")
+async def create_api_key_connection(api_request: APIKeyConnectionRequest):
+    """Create connection using API key authentication"""
+    try:
+        platform = await db.integration_platforms.find_one({"id": api_request.platform_id})
+        if not platform:
+            raise HTTPException(status_code=404, detail="Platform not found")
+        
+        # Test API key by making a test call
+        test_result = await simulate_external_api_call(platform["slug"], "test", "GET")
+        
+        connection = IntegrationConnection(
+            platform_id=api_request.platform_id,
+            platform_name=platform["name"],
+            user_id=api_request.user_id,
+            connection_name=api_request.connection_name,
+            status=ConnectionStatus.CONNECTED,
+            api_key=api_request.api_key,
+            auth_data=api_request.additional_config,
+            next_sync_at=datetime.utcnow() + timedelta(minutes=60)
+        )
+        
+        await db.integration_connections.insert_one(connection.dict())
+        
+        return {
+            "message": "API key connection established successfully",
+            "connection_id": connection.id,
+            "platform_name": platform["name"]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/integrations/connections/{connection_id}")
+async def get_connection_details(connection_id: str):
+    """Get detailed information about a specific connection"""
+    connection = await db.integration_connections.find_one({"id": connection_id})
+    if not connection:
+        raise HTTPException(status_code=404, detail="Connection not found")
+    
+    # Get recent sync jobs
+    sync_jobs_cursor = db.sync_jobs.find({"connection_id": connection_id}).sort("created_at", -1).limit(10)
+    recent_syncs = await sync_jobs_cursor.to_list(10)
+    
+    return {
+        "connection": IntegrationConnection(**connection),
+        "recent_syncs": [SyncJob(**sync) for sync in recent_syncs]
+    }
+
+@api_router.post("/integrations/sync-jobs", response_model=SyncJob)
+async def create_sync_job(job_request: SyncJobCreate):
+    """Create and execute a sync job"""
+    try:
+        connection = await db.integration_connections.find_one({"id": job_request.connection_id})
+        if not connection:
+            raise HTTPException(status_code=404, detail="Connection not found")
+        
+        # Create sync job
+        sync_job = SyncJob(
+            connection_id=job_request.connection_id,
+            platform_name=connection["platform_name"],
+            job_type=job_request.job_type,
+            direction=job_request.direction,
+            data_type=job_request.data_type,
+            status=SyncStatus.IN_PROGRESS,
+            started_at=datetime.utcnow()
+        )
+        
+        await db.sync_jobs.insert_one(sync_job.dict())
+        
+        # Perform sync in background
+        asyncio.create_task(execute_sync_job(sync_job.id))
+        
+        return sync_job
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+async def execute_sync_job(sync_job_id: str):
+    """Execute a sync job in the background"""
+    try:
+        sync_job = await db.sync_jobs.find_one({"id": sync_job_id})
+        if not sync_job:
+            return
+        
+        connection = await db.integration_connections.find_one({"id": sync_job["connection_id"]})
+        if not connection:
+            await db.sync_jobs.update_one(
+                {"id": sync_job_id},
+                {"$set": {"status": SyncStatus.FAILED.value, "error_message": "Connection not found"}}
+            )
+            return
+        
+        # Perform sync
+        connection_obj = IntegrationConnection(**connection)
+        sync_results = await perform_data_sync(connection_obj, sync_job["data_type"], sync_job["direction"])
+        
+        # Update sync job
+        update_data = {
+            "status": SyncStatus.SUCCESS.value if sync_results["records_failed"] == 0 else SyncStatus.FAILED.value,
+            "completed_at": datetime.utcnow(),
+            "records_processed": sync_results["records_processed"],
+            "records_success": sync_results["records_success"],
+            "records_failed": sync_results["records_failed"],
+            "sync_summary": sync_results
+        }
+        
+        if sync_results["errors"]:
+            update_data["error_message"] = "; ".join(sync_results["errors"][:3])
+        
+        await db.sync_jobs.update_one({"id": sync_job_id}, {"$set": update_data})
+        
+        # Update connection stats
+        await db.integration_connections.update_one(
+            {"id": sync_job["connection_id"]},
+            {
+                "$set": {"last_sync_at": datetime.utcnow()},
+                "$inc": {
+                    "total_syncs": 1,
+                    "successful_syncs": 1 if update_data["status"] == SyncStatus.SUCCESS.value else 0,
+                    "failed_syncs": 1 if update_data["status"] == SyncStatus.FAILED.value else 0
+                }
+            }
+        )
+        
+    except Exception as e:
+        await db.sync_jobs.update_one(
+            {"id": sync_job_id},
+            {"$set": {"status": SyncStatus.FAILED.value, "error_message": str(e), "completed_at": datetime.utcnow()}}
+        )
+
+@api_router.delete("/integrations/connections/{connection_id}")
+async def disconnect_integration(connection_id: str):
+    """Disconnect an integration"""
+    connection = await db.integration_connections.find_one({"id": connection_id})
+    if not connection:
+        raise HTTPException(status_code=404, detail="Connection not found")
+    
+    # Update connection status
+    await db.integration_connections.update_one(
+        {"id": connection_id},
+        {"$set": {"status": ConnectionStatus.DISCONNECTED.value, "is_active": False, "updated_at": datetime.utcnow()}}
+    )
+    
+    return {"message": "Integration disconnected successfully"}
+
+@api_router.put("/integrations/connections/{connection_id}/field-mappings")
+async def update_field_mappings(connection_id: str, mapping_request: FieldMappingUpdate):
+    """Update field mappings for a connection"""
+    connection = await db.integration_connections.find_one({"id": connection_id})
+    if not connection:
+        raise HTTPException(status_code=404, detail="Connection not found")
+    
+    await db.integration_connections.update_one(
+        {"id": connection_id},
+        {"$set": {"field_mappings": mapping_request.field_mappings, "updated_at": datetime.utcnow()}}
+    )
+    
+    return {"message": "Field mappings updated successfully"}
+
+@api_router.get("/integrations/analytics")
+async def get_integrations_analytics():
+    """Get analytics for all integrations"""
+    try:
+        # Get connection counts by platform
+        platform_stats = {}
+        connections_cursor = db.integration_connections.find({"is_active": True})
+        connections = await connections_cursor.to_list(1000)
+        
+        for connection in connections:
+            platform = connection["platform_name"]
+            if platform not in platform_stats:
+                platform_stats[platform] = {
+                    "connections": 0,
+                    "active_connections": 0,
+                    "total_syncs": 0,
+                    "successful_syncs": 0,
+                    "failed_syncs": 0
+                }
+            
+            platform_stats[platform]["connections"] += 1
+            if connection["status"] == ConnectionStatus.CONNECTED.value:
+                platform_stats[platform]["active_connections"] += 1
+            
+            platform_stats[platform]["total_syncs"] += connection.get("total_syncs", 0)
+            platform_stats[platform]["successful_syncs"] += connection.get("successful_syncs", 0)
+            platform_stats[platform]["failed_syncs"] += connection.get("failed_syncs", 0)
+        
+        # Get recent sync jobs
+        recent_syncs_cursor = db.sync_jobs.find().sort("created_at", -1).limit(20)
+        recent_syncs = await recent_syncs_cursor.to_list(20)
+        
+        return {
+            "platform_stats": platform_stats,
+            "recent_syncs": [SyncJob(**sync) for sync in recent_syncs],
+            "total_connections": len(connections),
+            "active_connections": len([c for c in connections if c["status"] == ConnectionStatus.CONNECTED.value])
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/integrations/initialize-sample-data")
+async def initialize_integrations_sample_data():
+    """Initialize sample integration platforms and connections"""
+    try:
+        # Clear existing data
+        await db.integration_platforms.delete_many({})
+        await db.integration_connections.delete_many({})
+        
+        # Create sample platforms
+        sample_platforms = [
+            IntegrationPlatform(
+                name="Salesforce",
+                slug="salesforce",
+                type=IntegrationType.CRM,
+                description="World's #1 CRM platform for sales, service, and marketing",
+                logo_url="https://www.salesforce.com/content/dam/web/en_us/www/images/nav/salesforce-logo.svg",
+                website_url="https://salesforce.com",
+                documentation_url="https://developer.salesforce.com/docs/",
+                auth_type=AuthType.OAUTH2,
+                auth_config=get_platform_oauth_config("salesforce"),
+                supported_features=["contacts", "accounts", "opportunities", "tasks", "events"],
+                api_base_url="https://[instance].salesforce.com/services/data/v58.0/",
+                rate_limits={"requests_per_hour": 1000}
+            ),
+            IntegrationPlatform(
+                name="HubSpot",
+                slug="hubspot",
+                type=IntegrationType.CRM,
+                description="Inbound marketing, sales, and service software",
+                logo_url="https://www.hubspot.com/hubfs/HubSpot_Logos/HubSpot-Inversed-Favicon.png",
+                website_url="https://hubspot.com",
+                documentation_url="https://developers.hubspot.com/docs/api/overview",
+                auth_type=AuthType.OAUTH2,
+                auth_config=get_platform_oauth_config("hubspot"),
+                supported_features=["contacts", "companies", "deals", "tickets", "tasks"],
+                api_base_url="https://api.hubapi.com/",
+                rate_limits={"requests_per_hour": 1000}
+            ),
+            IntegrationPlatform(
+                name="Stripe",
+                slug="stripe",
+                type=IntegrationType.PAYMENT,
+                description="Online payment processing for internet businesses",
+                logo_url="https://images.ctfassets.net/fzn2n1nzq965/HTTOloNPhisV9P4hlMPNA/cacf1bb88b9fc492dfad34378d844280/Stripe_icon_-_square.svg",
+                website_url="https://stripe.com",
+                documentation_url="https://stripe.com/docs/api",
+                auth_type=AuthType.API_KEY,
+                auth_config={},
+                supported_features=["customers", "payments", "subscriptions", "invoices"],
+                api_base_url="https://api.stripe.com/v1/",
+                rate_limits={"requests_per_second": 100}
+            ),
+            IntegrationPlatform(
+                name="Mailchimp",
+                slug="mailchimp",
+                type=IntegrationType.MARKETING,
+                description="Email marketing and automation platform",
+                logo_url="https://mailchimp.com/release/plums/cxp/images/apple-touch-icon-192.png",
+                website_url="https://mailchimp.com",
+                documentation_url="https://mailchimp.com/developer/",
+                auth_type=AuthType.OAUTH2,
+                auth_config=get_platform_oauth_config("mailchimp"),
+                supported_features=["lists", "campaigns", "automation", "reports"],
+                api_base_url="https://[dc].api.mailchimp.com/3.0/",
+                rate_limits={"requests_per_hour": 1000}
+            ),
+            IntegrationPlatform(
+                name="Slack",
+                slug="slack",
+                type=IntegrationType.COMMUNICATION,
+                description="Team communication and collaboration platform",
+                logo_url="https://a.slack-edge.com/80588/marketing/img/icons/icon_slack_hash_colored.png",
+                website_url="https://slack.com",
+                documentation_url="https://api.slack.com/",
+                auth_type=AuthType.OAUTH2,
+                auth_config=get_platform_oauth_config("slack"),
+                supported_features=["channels", "messages", "users", "files"],
+                api_base_url="https://slack.com/api/",
+                rate_limits={"requests_per_minute": 100}
+            ),
+            IntegrationPlatform(
+                name="Asana",
+                slug="asana",
+                type=IntegrationType.PROJECT_MANAGEMENT,
+                description="Project management and team collaboration tool",
+                logo_url="https://luna1.co/asana.png",
+                website_url="https://asana.com",
+                documentation_url="https://developers.asana.com/docs/",
+                auth_type=AuthType.OAUTH2,
+                auth_config={
+                    'authorization_base_url': 'https://app.asana.com/-/oauth_authorize',
+                    'token_url': 'https://app.asana.com/-/oauth_token',
+                    'scopes': ['default']
+                },
+                supported_features=["projects", "tasks", "users", "teams"],
+                api_base_url="https://app.asana.com/api/1.0/",
+                rate_limits={"requests_per_hour": 1500}
+            )
+        ]
+        
+        for platform in sample_platforms:
+            await db.integration_platforms.insert_one(platform.dict())
+        
+        return {"message": "Sample integration platforms initialized successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 @api_router.post("/initialize-mock-data")
 async def initialize_mock_data():
     """Initialize the system with mock data"""
