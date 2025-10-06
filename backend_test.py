@@ -638,9 +638,8 @@ class SystemIXAPITester:
             alert_update_success, update_result = self.run_test(
                 "Update Alert Status to Acknowledged", 
                 "PUT", 
-                f"monitoring/alerts/{created_alert['id']}/status", 
-                200, 
-                "acknowledged"
+                f"monitoring/alerts/{created_alert['id']}/status?status=acknowledged", 
+                200
             )
             
             # Test resolving the alert
@@ -648,9 +647,8 @@ class SystemIXAPITester:
                 self.run_test(
                     "Update Alert Status to Resolved", 
                     "PUT", 
-                    f"monitoring/alerts/{created_alert['id']}/status", 
-                    200, 
-                    "resolved"
+                    f"monitoring/alerts/{created_alert['id']}/status?status=resolved", 
+                    200
                 )
         
         # 8. Test AI Analysis API
