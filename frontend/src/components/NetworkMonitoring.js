@@ -280,13 +280,33 @@ const NetworkMonitoring = () => {
       )}
 
       {/* Main Tabs */}
-      <Tabs defaultValue="dashboard" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="alerts">Alerts</TabsTrigger>
-          <TabsTrigger value="metrics">Metrics</TabsTrigger>
-          <TabsTrigger value="healing">Self-Healing</TabsTrigger>
-        </TabsList>
+      <div className="w-full">
+        <div className="grid grid-cols-4 border-b">
+          <button 
+            onClick={() => setActiveTab('dashboard')}
+            className={`px-4 py-2 font-medium ${activeTab === 'dashboard' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600 hover:text-gray-900'}`}
+          >
+            Dashboard
+          </button>
+          <button 
+            onClick={() => setActiveTab('alerts')}
+            className={`px-4 py-2 font-medium ${activeTab === 'alerts' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600 hover:text-gray-900'}`}
+          >
+            Alerts
+          </button>
+          <button 
+            onClick={() => setActiveTab('metrics')}
+            className={`px-4 py-2 font-medium ${activeTab === 'metrics' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600 hover:text-gray-900'}`}
+          >
+            Metrics
+          </button>
+          <button 
+            onClick={() => setActiveTab('healing')}
+            className={`px-4 py-2 font-medium ${activeTab === 'healing' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600 hover:text-gray-900'}`}
+          >
+            Self-Healing
+          </button>
+        </div>
 
         {/* Dashboard Tab */}
         <TabsContent value="dashboard" className="space-y-4">
