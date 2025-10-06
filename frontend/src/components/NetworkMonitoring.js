@@ -1,30 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Activity, 
-  AlertTriangle, 
-  CheckCircle, 
-  Cpu, 
-  HardDrive, 
-  MemoryStick, 
-  Network, 
-  Server, 
-  Zap,
-  Clock,
-  TrendingUp,
-  Settings,
-  RefreshCw,
-  Bot
-} from 'lucide-react';
 
 const NetworkMonitoring = () => {
   const [systemStatus, setSystemStatus] = useState(null);
   const [alerts, setAlerts] = useState([]);
-  const [metrics, setMetrics] = useState([]);
-  const [healingActions, setHealingActions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [lastAnalysis, setLastAnalysis] = useState(null);
-  const [activeTab, setActiveTab] = useState('dashboard');
 
   const backendUrl = process.env.REACT_APP_BACKEND_URL || import.meta.env.REACT_APP_BACKEND_URL;
 
@@ -47,28 +29,6 @@ const NetworkMonitoring = () => {
       setAlerts(data);
     } catch (error) {
       console.error('Error fetching alerts:', error);
-    }
-  };
-
-  // Fetch metrics
-  const fetchMetrics = async () => {
-    try {
-      const response = await fetch(`${backendUrl}/api/monitoring/metrics?limit=20`);
-      const data = await response.json();
-      setMetrics(data);
-    } catch (error) {
-      console.error('Error fetching metrics:', error);
-    }
-  };
-
-  // Fetch healing actions
-  const fetchHealingActions = async () => {
-    try {
-      const response = await fetch(`${backendUrl}/api/monitoring/healing-actions?limit=10`);
-      const data = await response.json();
-      setHealingActions(data);
-    } catch (error) {
-      console.error('Error fetching healing actions:', error);
     }
   };
 
@@ -102,45 +62,11 @@ const NetworkMonitoring = () => {
     }
   };
 
-  // Update alert status
-  const updateAlertStatus = async (alertId, status) => {
-    try {
-      await fetch(`${backendUrl}/api/monitoring/alerts/${alertId}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(status)
-      });
-      await fetchAlerts(); // Refresh alerts
-    } catch (error) {
-      console.error('Error updating alert status:', error);
-    }
-  };
-
-  // Execute healing action
-  const executeHealingAction = async (alertId, actionType, description) => {
-    try {
-      await fetch(`${backendUrl}/api/monitoring/healing-action`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action_type: actionType, alert_id: alertId, description })
-      });
-      await fetchHealingActions(); // Refresh healing actions
-      await fetchAlerts(); // Refresh alerts
-    } catch (error) {
-      console.error('Error executing healing action:', error);
-    }
-  };
-
   // Load data on component mount
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([
-        fetchSystemStatus(),
-        fetchAlerts(),
-        fetchMetrics(),
-        fetchHealingActions()
-      ]);
+      await Promise.all([fetchSystemStatus(), fetchAlerts()]);
       setLoading(false);
     };
 
@@ -197,7 +123,9 @@ const NetworkMonitoring = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Bot className="h-8 w-8 text-blue-600" />
+            <svg className="h-8 w-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+            </svg>
             Autonomous Network Monitoring Bot
           </h1>
           <p className="text-gray-600">AI-powered system monitoring and self-healing</p>
@@ -209,9 +137,13 @@ const NetworkMonitoring = () => {
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 disabled:opacity-50"
           >
             {analysisLoading ? (
-              <RefreshCw className="h-4 w-4 animate-spin" />
+              <svg className="h-4 w-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
             ) : (
-              <Bot className="h-4 w-4" />
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
             )}
             AI Analysis
           </button>
@@ -219,7 +151,9 @@ const NetworkMonitoring = () => {
             onClick={() => window.location.reload()}
             className="border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg flex items-center gap-2"
           >
-            <RefreshCw className="h-4 w-4" />
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
             Refresh
           </button>
         </div>
@@ -236,7 +170,9 @@ const NetworkMonitoring = () => {
                   {systemStatus.overall_health.charAt(0).toUpperCase() + systemStatus.overall_health.slice(1)}
                 </p>
               </div>
-              <Server className={`h-8 w-8 ${getHealthColor(systemStatus.overall_health)}`} />
+              <svg className={`h-8 w-8 ${getHealthColor(systemStatus.overall_health)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h6a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h6a2 2 0 002-2v-4a2 2 0 00-2-2m8-2V6a2 2 0 012-2h2a2 2 0 012 2v8a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
             </div>
           </div>
 
@@ -249,7 +185,9 @@ const NetworkMonitoring = () => {
                   <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${systemStatus.cpu_usage}%` }}></div>
                 </div>
               </div>
-              <Cpu className="h-8 w-8 text-blue-600" />
+              <svg className="h-8 w-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+              </svg>
             </div>
           </div>
 
@@ -262,7 +200,9 @@ const NetworkMonitoring = () => {
                   <div className="bg-green-600 h-2 rounded-full" style={{ width: `${systemStatus.memory_usage}%` }}></div>
                 </div>
               </div>
-              <MemoryStick className="h-8 w-8 text-green-600" />
+              <svg className="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
             </div>
           </div>
 
@@ -273,7 +213,9 @@ const NetworkMonitoring = () => {
                 <p className="text-2xl font-bold text-gray-900">{systemStatus.active_alerts}</p>
                 <p className="text-sm text-gray-500">{systemStatus.total_alerts_24h} in 24h</p>
               </div>
-              <AlertTriangle className="h-8 w-8 text-orange-600" />
+              <svg className="h-8 w-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
             </div>
           </div>
         </div>
@@ -281,7 +223,7 @@ const NetworkMonitoring = () => {
 
       {/* Main Tabs */}
       <div className="w-full">
-        <div className="grid grid-cols-4 border-b">
+        <div className="grid grid-cols-3 border-b">
           <button 
             onClick={() => setActiveTab('dashboard')}
             className={`px-4 py-2 font-medium ${activeTab === 'dashboard' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600 hover:text-gray-900'}`}
@@ -292,276 +234,162 @@ const NetworkMonitoring = () => {
             onClick={() => setActiveTab('alerts')}
             className={`px-4 py-2 font-medium ${activeTab === 'alerts' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600 hover:text-gray-900'}`}
           >
-            Alerts
+            Alerts ({alerts.length})
           </button>
           <button 
-            onClick={() => setActiveTab('metrics')}
-            className={`px-4 py-2 font-medium ${activeTab === 'metrics' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600 hover:text-gray-900'}`}
+            onClick={() => setActiveTab('testing')}
+            className={`px-4 py-2 font-medium ${activeTab === 'testing' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600 hover:text-gray-900'}`}
           >
-            Metrics
-          </button>
-          <button 
-            onClick={() => setActiveTab('healing')}
-            className={`px-4 py-2 font-medium ${activeTab === 'healing' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600 hover:text-gray-900'}`}
-          >
-            Self-Healing
+            Testing & Simulation
           </button>
         </div>
 
         {/* Dashboard Tab */}
         {activeTab === 'dashboard' && (
           <div className="space-y-4 mt-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* System Metrics */}
-            <div className="bg-white p-6 rounded-lg shadow border">
-              <h3 className="text-lg font-semibold mb-4">System Metrics</h3>
-              {systemStatus && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <HardDrive className="h-4 w-4 text-gray-600" />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* System Metrics */}
+              <div className="bg-white p-6 rounded-lg shadow border">
+                <h3 className="text-lg font-semibold mb-4">System Metrics</h3>
+                {systemStatus && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
                       <span>Disk Usage</span>
+                      <span className="font-medium">{systemStatus.disk_usage.toFixed(1)}%</span>
                     </div>
-                    <span className="font-medium">{systemStatus.disk_usage.toFixed(1)}%</span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Network className="h-4 w-4 text-gray-600" />
+                    <div className="flex items-center justify-between">
                       <span>Network Latency</span>
+                      <span className="font-medium">{systemStatus.network_latency.toFixed(1)}ms</span>
                     </div>
-                    <span className="font-medium">{systemStatus.network_latency.toFixed(1)}ms</span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Activity className="h-4 w-4 text-gray-600" />
+                    <div className="flex items-center justify-between">
                       <span>API Response Time</span>
+                      <span className="font-medium">{systemStatus.api_response_time.toFixed(1)}ms</span>
                     </div>
-                    <span className="font-medium">{systemStatus.api_response_time.toFixed(1)}ms</span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-gray-600" />
+                    <div className="flex items-center justify-between">
                       <span>Uptime</span>
+                      <span className="font-medium">{(systemStatus.uptime / 24).toFixed(1)} days</span>
                     </div>
-                    <span className="font-medium">{(systemStatus.uptime / 24).toFixed(1)} days</span>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
 
-            {/* Recent AI Analysis */}
-            <div className="bg-white p-6 rounded-lg shadow border">
-              <h3 className="text-lg font-semibold mb-4">AI Analysis</h3>
-              {lastAnalysis ? (
-                <div className="space-y-2">
-                  <p className="text-sm text-gray-600">
-                    Last Analysis: {new Date(lastAnalysis.timestamp).toLocaleString()}
-                  </p>
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
-                    <Bot className="h-4 w-4 text-blue-600 mt-1" />
-                    <div className="text-sm">{lastAnalysis.ai_analysis}</div>
+              {/* Recent AI Analysis */}
+              <div className="bg-white p-6 rounded-lg shadow border">
+                <h3 className="text-lg font-semibold mb-4">AI Analysis</h3>
+                {lastAnalysis ? (
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-600">
+                      Last Analysis: {new Date(lastAnalysis.timestamp).toLocaleString()}
+                    </p>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                      <div className="text-sm">{lastAnalysis.ai_analysis}</div>
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <div className="text-center py-4">
-                  <Bot className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-500">No recent AI analysis</p>
-                  <button 
-                    onClick={triggerAIAnalysis} 
-                    disabled={analysisLoading}
-                    className="mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg disabled:opacity-50"
-                  >
-                    Run Analysis
-                  </button>
-                </div>
-              )}
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-gray-500">No recent AI analysis</p>
+                    <button 
+                      onClick={triggerAIAnalysis} 
+                      disabled={analysisLoading}
+                      className="mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg disabled:opacity-50"
+                    >
+                      Run Analysis
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-
-          {/* Testing Actions */}
-          <div className="bg-white p-6 rounded-lg shadow border">
-            <h3 className="text-lg font-semibold mb-4">Testing & Simulation</h3>
-            <div className="flex gap-2 flex-wrap">
-              <button 
-                onClick={() => simulateAlert('low')}
-                className="text-blue-600 border border-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg"
-              >
-                Simulate Low Alert
-              </button>
-              <button 
-                onClick={() => simulateAlert('medium')}
-                className="text-yellow-600 border border-yellow-600 hover:bg-yellow-50 px-4 py-2 rounded-lg"
-              >
-                Simulate Medium Alert
-              </button>
-              <button 
-                onClick={() => simulateAlert('high')}
-                className="text-orange-600 border border-orange-600 hover:bg-orange-50 px-4 py-2 rounded-lg"
-              >
-                Simulate High Alert
-              </button>
-              <button 
-                onClick={() => simulateAlert('critical')}
-                className="text-red-600 border border-red-600 hover:bg-red-50 px-4 py-2 rounded-lg"
-              >
-                Simulate Critical Alert
-              </button>
-            </div>
-          </div>
-        </div>
         )}
 
         {/* Alerts Tab */}
         {activeTab === 'alerts' && (
           <div className="space-y-4 mt-6">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold">System Alerts</h3>
-            <Button onClick={fetchAlerts} variant="outline">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
-            </Button>
-          </div>
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold">System Alerts</h3>
+              <button onClick={fetchAlerts} className="border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg">
+                Refresh
+              </button>
+            </div>
 
-          <div className="space-y-4">
-            {alerts.length === 0 ? (
-              <Card className="p-6 text-center">
-                <CheckCircle className="h-8 w-8 text-green-500 mx-auto mb-2" />
-                <p className="text-gray-500">No active alerts</p>
-              </Card>
-            ) : (
-              alerts.map((alert) => (
-                <Card key={alert.id} className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge className={getSeverityColor(alert.severity)}>
-                          {alert.severity.toUpperCase()}
-                        </Badge>
-                        <Badge variant="outline">{alert.status}</Badge>
-                      </div>
-                      <h4 className="font-semibold">{alert.title}</h4>
-                      <p className="text-gray-600 text-sm">{alert.description}</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {new Date(alert.created_at).toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="flex gap-2 ml-4">
-                      {alert.status === 'active' && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => updateAlertStatus(alert.id, 'acknowledged')}
-                          >
-                            Acknowledge
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => updateAlertStatus(alert.id, 'resolved')}
-                          >
-                            Resolve
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => executeHealingAction(alert.id, 'restart_service', 'Auto-healing attempt')}
-                          >
-                            <Zap className="h-4 w-4 mr-1" />
-                            Heal
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  {alert.ai_analysis && (
-                    <Alert className="mt-3">
-                      <Bot className="h-4 w-4" />
-                      <div className="text-sm">{alert.ai_analysis}</div>
-                    </Alert>
-                  )}
-                </Card>
-              ))
-            )}
-          </div>
-        </TabsContent>
-
-        {/* Metrics Tab */}
-        <TabsContent value="metrics" className="space-y-4">
-          <h3 className="text-lg font-semibold">System Metrics History</h3>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {metrics.slice(0, 10).map((metric) => (
-              <Card key={metric.id} className="p-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-semibold">{metric.metric_name}</h4>
-                    <p className="text-2xl font-bold text-blue-600">
-                      {metric.value} {metric.unit}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Source: {metric.source}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-gray-500">
-                      {new Date(metric.timestamp).toLocaleString()}
-                    </p>
-                  </div>
+            <div className="space-y-4">
+              {alerts.length === 0 ? (
+                <div className="bg-white p-6 rounded-lg shadow border text-center">
+                  <svg className="h-8 w-8 text-green-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-gray-500">No active alerts</p>
                 </div>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        {/* Self-Healing Tab */}
-        <TabsContent value="healing" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold">Self-Healing Actions</h3>
-            <Button onClick={fetchHealingActions} variant="outline">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
-            </Button>
-          </div>
-
-          <div className="space-y-4">
-            {healingActions.length === 0 ? (
-              <Card className="p-6 text-center">
-                <Zap className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-gray-500">No healing actions executed yet</p>
-              </Card>
-            ) : (
-              healingActions.map((action) => (
-                <Card key={action.id} className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge variant={action.success ? "default" : "destructive"}>
-                          {action.success ? "SUCCESS" : "FAILED"}
-                        </Badge>
-                        {action.ai_recommended && (
-                          <Badge variant="outline">AI Recommended</Badge>
-                        )}
-                      </div>
-                      <h4 className="font-semibold">{action.action_type.replace('_', ' ').toUpperCase()}</h4>
-                      <p className="text-gray-600 text-sm">{action.description}</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Executed: {new Date(action.executed_at).toLocaleString()}
-                      </p>
-                      {action.output && (
-                        <div className="mt-2 p-2 bg-gray-50 rounded text-xs">
-                          {action.output}
+              ) : (
+                alerts.map((alert) => (
+                  <div key={alert.id} className="bg-white p-4 rounded-lg shadow border">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className={`px-2 py-1 text-xs font-medium rounded ${getSeverityColor(alert.severity)}`}>
+                            {alert.severity.toUpperCase()}
+                          </span>
+                          <span className="px-2 py-1 text-xs border rounded">
+                            {alert.status}
+                          </span>
                         </div>
-                      )}
+                        <h4 className="font-semibold">{alert.title}</h4>
+                        <p className="text-gray-600 text-sm">{alert.description}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {new Date(alert.created_at).toLocaleString()}
+                        </p>
+                      </div>
                     </div>
+                    {alert.ai_analysis && (
+                      <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <div className="text-sm">{alert.ai_analysis}</div>
+                      </div>
+                    )}
                   </div>
-                </Card>
-              ))
-            )}
+                ))
+              )}
+            </div>
           </div>
-        </TabsContent>
-      </Tabs>
+        )}
+
+        {/* Testing Tab */}
+        {activeTab === 'testing' && (
+          <div className="space-y-4 mt-6">
+            <div className="bg-white p-6 rounded-lg shadow border">
+              <h3 className="text-lg font-semibold mb-4">Testing & Simulation</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <button 
+                  onClick={() => simulateAlert('low')}
+                  className="text-blue-600 border border-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg"
+                >
+                  Simulate Low Alert
+                </button>
+                <button 
+                  onClick={() => simulateAlert('medium')}
+                  className="text-yellow-600 border border-yellow-600 hover:bg-yellow-50 px-4 py-2 rounded-lg"
+                >
+                  Simulate Medium Alert
+                </button>
+                <button 
+                  onClick={() => simulateAlert('high')}
+                  className="text-orange-600 border border-orange-600 hover:bg-orange-50 px-4 py-2 rounded-lg"
+                >
+                  Simulate High Alert
+                </button>
+                <button 
+                  onClick={() => simulateAlert('critical')}
+                  className="text-red-600 border border-red-600 hover:bg-red-50 px-4 py-2 rounded-lg"
+                >
+                  Simulate Critical Alert
+                </button>
+              </div>
+              <div className="mt-4 text-sm text-gray-600">
+                <p>Use these buttons to simulate different types of alerts for testing the monitoring system.</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
