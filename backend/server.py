@@ -34,6 +34,12 @@ from reportlab.lib.styles import getSampleStyleSheet
 # AI Integration
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 
+# Import monitoring models
+from models.monitoring import (
+    MonitoringMetric, SystemAlert, SystemStatus, HealingAction,
+    MonitoringConfig, AnomalyDetection, AlertSeverity, AlertStatus
+)
+
 # Import quoting models directly
 class QuoteStatus(str, Enum):
     DRAFT = "draft"
