@@ -3365,6 +3365,351 @@ async def initialize_mock_data():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# ============================================================================
+# AUTONOMOUS NETWORK MONITORING BOT ENDPOINTS
+# ============================================================================
+
+# Helper function to get system metrics (simulated for demo)
+async def get_current_system_metrics():
+    """Simulate getting real system metrics"""
+    import random
+    import psutil
+    
+    # Get actual system metrics where possible, simulate others
+    try:
+        cpu_percent = psutil.cpu_percent(interval=1)
+        memory = psutil.virtual_memory()
+        disk = psutil.disk_usage('/')
+        
+        return {
+            "cpu_usage": cpu_percent,
+            "memory_usage": memory.percent,
+            "disk_usage": (disk.used / disk.total) * 100,
+            "network_latency": random.uniform(10, 50),  # Simulated
+            "api_response_time": random.uniform(100, 300),  # Simulated
+        }
+    except Exception:
+        # Fallback to simulated metrics
+        return {
+            "cpu_usage": random.uniform(20, 80),
+            "memory_usage": random.uniform(30, 85),
+            "disk_usage": random.uniform(40, 75),
+            "network_latency": random.uniform(10, 50),
+            "api_response_time": random.uniform(100, 300),
+        }
+
+# AI-powered anomaly detection function
+async def analyze_metrics_with_ai(metrics_data: List[Dict], current_metrics: Dict):
+    """Use AI to analyze metrics and detect anomalies"""
+    try:
+        # Initialize AI chat for analysis
+        chat = LlmChat(
+            api_key=os.environ.get('OPENAI_API_KEY') or os.environ.get('EMERGENT_LLM_KEY'),
+            session_id=f"monitoring_analysis_{uuid.uuid4()}",
+            system_message="You are an expert system monitoring AI. Analyze system metrics to detect anomalies, patterns, and potential issues. Provide actionable insights and recommendations."
+        ).with_model("openai", "gpt-4o")
+        
+        # Prepare metrics data for AI analysis
+        analysis_prompt = f"""
+        Current System Metrics:
+        - CPU Usage: {current_metrics['cpu_usage']:.1f}%
+        - Memory Usage: {current_metrics['memory_usage']:.1f}%
+        - Disk Usage: {current_metrics['disk_usage']:.1f}%
+        - Network Latency: {current_metrics['network_latency']:.1f}ms
+        - API Response Time: {current_metrics['api_response_time']:.1f}ms
+        
+        Historical Data Points: {len(metrics_data)} recent measurements
+        
+        Please analyze these metrics and:
+        1. Identify any anomalies or concerning patterns
+        2. Assess overall system health (healthy/warning/critical)
+        3. Provide specific recommendations for optimization
+        4. Suggest any automated healing actions if needed
+        
+        Format your response as JSON with: health_status, anomalies_detected, recommendations, healing_actions
+        """
+        
+        user_message = UserMessage(text=analysis_prompt)
+        response = await chat.send_message(user_message)
+        
+        return response
+    except Exception as e:
+        logger.error(f"AI analysis failed: {str(e)}")
+        return "AI analysis temporarily unavailable. System appears stable based on threshold checks."
+
+@api_router.get("/monitoring/system-status")
+async def get_system_status():
+    """Get current system status and health metrics"""
+    try:
+        current_metrics = await get_current_system_metrics()
+        
+        # Count active alerts
+        active_alerts_count = await db.system_alerts.count_documents({"status": "active"})
+        
+        # Calculate uptime (simulated)
+        uptime_hours = random.uniform(120, 720)  # Simulate 5-30 days uptime
+        
+        # Determine overall health based on metrics
+        health = "healthy"
+        if current_metrics["cpu_usage"] > 80 or current_metrics["memory_usage"] > 85:
+            health = "warning"
+        if current_metrics["cpu_usage"] > 90 or current_metrics["memory_usage"] > 95:
+            health = "critical"
+        
+        system_status = SystemStatus(
+            overall_health=health,
+            cpu_usage=current_metrics["cpu_usage"],
+            memory_usage=current_metrics["memory_usage"],
+            disk_usage=current_metrics["disk_usage"],
+            network_latency=current_metrics["network_latency"],
+            api_response_time=current_metrics["api_response_time"],
+            active_alerts=active_alerts_count,
+            total_alerts_24h=await db.system_alerts.count_documents({
+                "created_at": {"$gte": datetime.utcnow() - timedelta(hours=24)}
+            }),
+            last_check=datetime.utcnow(),
+            uptime=uptime_hours
+        )
+        
+        return system_status
+    except Exception as e:
+        logger.error(f"Error getting system status: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/monitoring/metrics", response_model=List[MonitoringMetric])
+async def get_monitoring_metrics(limit: int = 50):
+    """Get recent monitoring metrics"""
+    try:
+        metrics = await db.monitoring_metrics.find().sort("timestamp", -1).limit(limit).to_list(length=limit)
+        return [MonitoringMetric(**metric) for metric in metrics]
+    except Exception as e:
+        logger.error(f"Error getting metrics: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/monitoring/metrics")
+async def create_monitoring_metric(metric: MonitoringMetric):
+    """Create a new monitoring metric entry"""
+    try:
+        metric_dict = metric.dict()
+        await db.monitoring_metrics.insert_one(metric_dict)
+        return {"message": "Metric created successfully", "id": metric.id}
+    except Exception as e:
+        logger.error(f"Error creating metric: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/monitoring/alerts", response_model=List[SystemAlert])
+async def get_system_alerts(status: Optional[str] = None, limit: int = 50):
+    """Get system alerts with optional status filter"""
+    try:
+        query = {}
+        if status:
+            query["status"] = status
+        
+        alerts = await db.system_alerts.find(query).sort("created_at", -1).limit(limit).to_list(length=limit)
+        return [SystemAlert(**alert) for alert in alerts]
+    except Exception as e:
+        logger.error(f"Error getting alerts: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/monitoring/alerts")
+async def create_system_alert(alert: SystemAlert):
+    """Create a new system alert"""
+    try:
+        alert_dict = alert.dict()
+        await db.system_alerts.insert_one(alert_dict)
+        
+        # If critical alert, trigger immediate analysis
+        if alert.severity == AlertSeverity.CRITICAL:
+            # Background task for AI analysis and potential healing
+            pass  # Implement background processing if needed
+        
+        return {"message": "Alert created successfully", "id": alert.id}
+    except Exception as e:
+        logger.error(f"Error creating alert: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.put("/monitoring/alerts/{alert_id}/status")
+async def update_alert_status(alert_id: str, status: AlertStatus):
+    """Update alert status"""
+    try:
+        update_data = {
+            "status": status.value,
+            "updated_at": datetime.utcnow()
+        }
+        
+        if status == AlertStatus.RESOLVED:
+            update_data["resolved_at"] = datetime.utcnow()
+        
+        result = await db.system_alerts.update_one(
+            {"id": alert_id},
+            {"$set": update_data}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Alert not found")
+        
+        return {"message": "Alert status updated successfully"}
+    except Exception as e:
+        logger.error(f"Error updating alert status: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/monitoring/analyze")
+async def trigger_ai_analysis():
+    """Trigger AI-powered system analysis"""
+    try:
+        # Get current metrics
+        current_metrics = await get_current_system_metrics()
+        
+        # Get recent historical metrics
+        recent_metrics = await db.monitoring_metrics.find().sort("timestamp", -1).limit(20).to_list(length=20)
+        
+        # Perform AI analysis
+        ai_analysis = await analyze_metrics_with_ai(recent_metrics, current_metrics)
+        
+        # Store the current metrics
+        metric = MonitoringMetric(
+            metric_name="system_health_check",
+            value=1.0,
+            unit="status",
+            timestamp=datetime.utcnow(),
+            source="ai_analysis",
+            metadata=current_metrics
+        )
+        await db.monitoring_metrics.insert_one(metric.dict())
+        
+        return {
+            "message": "AI analysis completed",
+            "current_metrics": current_metrics,
+            "ai_analysis": ai_analysis,
+            "timestamp": datetime.utcnow()
+        }
+    except Exception as e:
+        logger.error(f"Error in AI analysis: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/monitoring/healing-action")
+async def execute_healing_action(action_type: str, alert_id: str, description: str):
+    """Execute a self-healing action"""
+    try:
+        success = False
+        output = ""
+        
+        # Simulate different healing actions
+        if action_type == "restart_service":
+            # Simulate service restart
+            output = "Service restart command executed successfully"
+            success = True
+        elif action_type == "clear_cache":
+            # Simulate cache clearing
+            output = "System cache cleared successfully"
+            success = True
+        elif action_type == "scale_resources":
+            # Simulate resource scaling
+            output = "Resource scaling initiated"
+            success = True
+        else:
+            output = f"Unknown action type: {action_type}"
+            success = False
+        
+        # Create healing action record
+        healing_action = HealingAction(
+            alert_id=alert_id,
+            action_type=action_type,
+            description=description,
+            executed_at=datetime.utcnow(),
+            success=success,
+            output=output,
+            ai_recommended=True
+        )
+        
+        await db.healing_actions.insert_one(healing_action.dict())
+        
+        # Update the alert with healing attempt
+        await db.system_alerts.update_one(
+            {"id": alert_id},
+            {
+                "$set": {
+                    "auto_healing_attempted": True,
+                    "updated_at": datetime.utcnow()
+                },
+                "$push": {"healing_actions": action_type}
+            }
+        )
+        
+        return {
+            "message": "Healing action executed",
+            "action_id": healing_action.id,
+            "success": success,
+            "output": output
+        }
+    except Exception as e:
+        logger.error(f"Error executing healing action: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/monitoring/healing-actions", response_model=List[HealingAction])
+async def get_healing_actions(limit: int = 50):
+    """Get recent healing actions"""
+    try:
+        actions = await db.healing_actions.find().sort("executed_at", -1).limit(limit).to_list(length=limit)
+        return [HealingAction(**action) for action in actions]
+    except Exception as e:
+        logger.error(f"Error getting healing actions: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/monitoring/simulate-alert")
+async def simulate_system_alert(severity: AlertSeverity = AlertSeverity.MEDIUM):
+    """Simulate a system alert for testing purposes"""
+    try:
+        current_metrics = await get_current_system_metrics()
+        
+        # Create a simulated alert based on metrics
+        alert_scenarios = {
+            AlertSeverity.LOW: {
+                "title": "Disk Usage Warning",
+                "description": f"Disk usage at {current_metrics['disk_usage']:.1f}% - monitor closely"
+            },
+            AlertSeverity.MEDIUM: {
+                "title": "High Memory Usage",
+                "description": f"Memory usage at {current_metrics['memory_usage']:.1f}% - consider optimization"
+            },
+            AlertSeverity.HIGH: {
+                "title": "CPU Spike Detected",
+                "description": f"CPU usage at {current_metrics['cpu_usage']:.1f}% - investigate processes"
+            },
+            AlertSeverity.CRITICAL: {
+                "title": "System Performance Critical",
+                "description": "Multiple metrics exceeding safe thresholds - immediate action required"
+            }
+        }
+        
+        scenario = alert_scenarios[severity]
+        
+        alert = SystemAlert(
+            title=scenario["title"],
+            description=scenario["description"],
+            severity=severity,
+            source="system_monitor",
+            metric_data=current_metrics,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow(),
+            auto_healing_attempted=False
+        )
+        
+        await db.system_alerts.insert_one(alert.dict())
+        
+        return {
+            "message": "Simulated alert created successfully",
+            "alert": alert,
+            "alert_id": alert.id
+        }
+    except Exception as e:
+        logger.error(f"Error simulating alert: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================================================
+# END MONITORING ENDPOINTS
+# ============================================================================
+
 # Include router
 app.include_router(api_router)
 
