@@ -309,7 +309,8 @@ const NetworkMonitoring = () => {
         </div>
 
         {/* Dashboard Tab */}
-        <TabsContent value="dashboard" className="space-y-4">
+        {activeTab === 'dashboard' && (
+          <div className="space-y-4 mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* System Metrics */}
             <Card className="p-6">
