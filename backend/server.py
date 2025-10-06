@@ -3893,7 +3893,7 @@ async def collect_and_broadcast_metrics():
                 "total_alerts_24h": await db.system_alerts.count_documents({
                     "created_at": {"$gte": datetime.utcnow() - timedelta(hours=24)}
                 }),
-                "last_check": datetime.utcnow(),
+                "last_check": datetime.utcnow().isoformat(),
                 "uptime": uptime_hours,
                 "timestamp": datetime.utcnow().isoformat()
             }
