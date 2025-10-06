@@ -313,7 +313,7 @@ const NetworkMonitoring = () => {
           <div className="space-y-4 mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* System Metrics */}
-            <Card className="p-6">
+            <div className="bg-white p-6 rounded-lg shadow border">
               <h3 className="text-lg font-semibold mb-4">System Metrics</h3>
               {systemStatus && (
                 <div className="space-y-4">
@@ -350,35 +350,35 @@ const NetworkMonitoring = () => {
                   </div>
                 </div>
               )}
-            </Card>
+            </div>
 
             {/* Recent AI Analysis */}
-            <Card className="p-6">
+            <div className="bg-white p-6 rounded-lg shadow border">
               <h3 className="text-lg font-semibold mb-4">AI Analysis</h3>
               {lastAnalysis ? (
                 <div className="space-y-2">
                   <p className="text-sm text-gray-600">
                     Last Analysis: {new Date(lastAnalysis.timestamp).toLocaleString()}
                   </p>
-                  <Alert>
-                    <Bot className="h-4 w-4" />
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
+                    <Bot className="h-4 w-4 text-blue-600 mt-1" />
                     <div className="text-sm">{lastAnalysis.ai_analysis}</div>
-                  </Alert>
+                  </div>
                 </div>
               ) : (
                 <div className="text-center py-4">
                   <Bot className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                   <p className="text-gray-500">No recent AI analysis</p>
-                  <Button 
+                  <button 
                     onClick={triggerAIAnalysis} 
                     disabled={analysisLoading}
-                    className="mt-2"
+                    className="mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg disabled:opacity-50"
                   >
                     Run Analysis
-                  </Button>
+                  </button>
                 </div>
               )}
-            </Card>
+            </div>
           </div>
 
           {/* Testing Actions */}
