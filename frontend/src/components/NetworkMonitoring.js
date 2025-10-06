@@ -203,25 +203,25 @@ const NetworkMonitoring = () => {
           <p className="text-gray-600">AI-powered system monitoring and self-healing</p>
         </div>
         <div className="flex gap-2">
-          <Button 
+          <button 
             onClick={triggerAIAnalysis} 
             disabled={analysisLoading}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 disabled:opacity-50"
           >
             {analysisLoading ? (
-              <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+              <RefreshCw className="h-4 w-4 animate-spin" />
             ) : (
-              <Bot className="h-4 w-4 mr-2" />
+              <Bot className="h-4 w-4" />
             )}
             AI Analysis
-          </Button>
-          <Button 
-            variant="outline" 
+          </button>
+          <button 
             onClick={() => window.location.reload()}
+            className="border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg flex items-center gap-2"
           >
-            <RefreshCw className="h-4 w-4 mr-2" />
+            <RefreshCw className="h-4 w-4" />
             Refresh
-          </Button>
+          </button>
         </div>
       </div>
 
