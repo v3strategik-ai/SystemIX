@@ -537,6 +537,214 @@ class SystemIXAPITester:
                 documents_success and create_category_success and template_success and 
                 document_success and conversion_success and docusign_success)
 
+    def test_monitoring_endpoints(self):
+        """Test comprehensive Network Monitoring Bot functionality"""
+        print("\n🔍 Running Network Monitoring Bot Tests...")
+        
+        # 1. Test System Status API
+        status_success, status_data = self.run_test(
+            "Get System Status", 
+            "GET", 
+            "monitoring/system-status", 
+            200
+        )
+        
+        # Validate system status response structure
+        if status_success and status_data:
+            required_fields = ['overall_health', 'cpu_usage', 'memory_usage', 'disk_usage', 
+                             'network_latency', 'api_response_time', 'active_alerts', 
+                             'total_alerts_24h', 'last_check', 'uptime']
+            missing_fields = [field for field in required_fields if field not in status_data]
+            if missing_fields:
+                print(f"   ⚠️ Missing fields in system status: {missing_fields}")
+            else:
+                print(f"   ✅ System health: {status_data.get('overall_health')}")
+                print(f"   📊 CPU: {status_data.get('cpu_usage'):.1f}%, Memory: {status_data.get('memory_usage'):.1f}%")
+        
+        # 2. Test Monitoring Metrics API - GET
+        metrics_get_success, metrics_data = self.run_test(
+            "Get Monitoring Metrics", 
+            "GET", 
+            "monitoring/metrics?limit=10", 
+            200
+        )
+        
+        # 3. Test Monitoring Metrics API - POST (Create new metric)
+        new_metric_data = {
+            "metric_name": "test_cpu_usage",
+            "value": 75.5,
+            "unit": "percentage",
+            "timestamp": datetime.utcnow().isoformat(),
+            "source": "api_test",
+            "metadata": {
+                "test_run": True,
+                "environment": "testing"
+            }
+        }
+        
+        metrics_post_success, metrics_post_result = self.run_test(
+            "Create Monitoring Metric", 
+            "POST", 
+            "monitoring/metrics", 
+            200, 
+            new_metric_data
+        )
+        
+        # 4. Test Alerts Management APIs - GET all alerts
+        alerts_get_success, alerts_data = self.run_test(
+            "Get All System Alerts", 
+            "GET", 
+            "monitoring/alerts?limit=20", 
+            200
+        )
+        
+        # 5. Test Alerts Management APIs - GET filtered alerts
+        active_alerts_success, active_alerts_data = self.run_test(
+            "Get Active Alerts", 
+            "GET", 
+            "monitoring/alerts?status=active&limit=10", 
+            200
+        )
+        
+        # 6. Test Alert Creation
+        new_alert_data = {
+            "title": "Test Alert - API Testing",
+            "description": "This is a test alert created during API testing to verify alert management functionality",
+            "severity": "medium",
+            "status": "active",
+            "source": "api_test",
+            "metric_data": {
+                "cpu_usage": 85.2,
+                "memory_usage": 78.9,
+                "trigger_threshold": 80.0
+            },
+            "created_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.utcnow().isoformat(),
+            "auto_healing_attempted": False,
+            "healing_actions": []
+        }
+        
+        alert_create_success, created_alert = self.run_test(
+            "Create System Alert", 
+            "POST", 
+            "monitoring/alerts", 
+            200, 
+            new_alert_data
+        )
+        
+        # 7. Test Alert Status Update (if alert was created successfully)
+        alert_update_success = False
+        if alert_create_success and created_alert and 'id' in created_alert:
+            alert_update_success, update_result = self.run_test(
+                "Update Alert Status to Acknowledged", 
+                "PUT", 
+                f"monitoring/alerts/{created_alert['id']}/status", 
+                200, 
+                "acknowledged"
+            )
+            
+            # Test resolving the alert
+            if alert_update_success:
+                self.run_test(
+                    "Update Alert Status to Resolved", 
+                    "PUT", 
+                    f"monitoring/alerts/{created_alert['id']}/status", 
+                    200, 
+                    "resolved"
+                )
+        
+        # 8. Test AI Analysis API
+        ai_analysis_success, ai_analysis_result = self.run_test(
+            "Trigger AI System Analysis", 
+            "POST", 
+            "monitoring/analyze", 
+            200,
+            timeout=60  # AI analysis might take longer
+        )
+        
+        # Validate AI analysis response
+        if ai_analysis_success and ai_analysis_result:
+            required_ai_fields = ['message', 'current_metrics', 'ai_analysis', 'timestamp']
+            missing_ai_fields = [field for field in required_ai_fields if field not in ai_analysis_result]
+            if missing_ai_fields:
+                print(f"   ⚠️ Missing fields in AI analysis: {missing_ai_fields}")
+            else:
+                print(f"   🤖 AI Analysis completed successfully")
+                if 'ai_analysis' in ai_analysis_result:
+                    analysis_text = ai_analysis_result['ai_analysis'][:100] + "..." if len(ai_analysis_result['ai_analysis']) > 100 else ai_analysis_result['ai_analysis']
+                    print(f"   📝 Analysis preview: {analysis_text}")
+        
+        # 9. Test Alert Simulation API - Different severity levels
+        simulation_results = []
+        severity_levels = ["low", "medium", "high", "critical"]
+        
+        for severity in severity_levels:
+            simulate_success, simulate_result = self.run_test(
+                f"Simulate {severity.title()} Alert", 
+                "POST", 
+                f"monitoring/simulate-alert?severity={severity}", 
+                200
+            )
+            simulation_results.append(simulate_success)
+            
+            if simulate_success and simulate_result:
+                print(f"   🚨 {severity.title()} alert simulated: {simulate_result.get('message', 'Success')}")
+        
+        # 10. Test Healing Actions API - Execute healing action
+        healing_success = False
+        if alert_create_success and created_alert and 'id' in created_alert:
+            healing_actions = ["restart_service", "clear_cache", "scale_resources"]
+            
+            for action in healing_actions:
+                action_success, action_result = self.run_test(
+                    f"Execute Healing Action: {action}", 
+                    "POST", 
+                    f"monitoring/healing-action?action_type={action}&alert_id={created_alert['id']}&description=API test healing action for {action}", 
+                    200
+                )
+                
+                if action_success:
+                    healing_success = True
+                    print(f"   🔧 Healing action '{action}' executed successfully")
+                    break
+        
+        # 11. Test Get Healing Actions
+        healing_history_success, healing_history = self.run_test(
+            "Get Healing Actions History", 
+            "GET", 
+            "monitoring/healing-actions?limit=10", 
+            200
+        )
+        
+        # 12. Test comprehensive monitoring workflow
+        workflow_success = True
+        if status_success and metrics_get_success and alerts_get_success and ai_analysis_success:
+            print("   ✅ Core monitoring workflow functional")
+        else:
+            workflow_success = False
+            print("   ❌ Core monitoring workflow has issues")
+        
+        # Calculate overall success rate for monitoring
+        monitoring_tests = [
+            status_success, metrics_get_success, metrics_post_success,
+            alerts_get_success, active_alerts_success, alert_create_success,
+            ai_analysis_success, healing_history_success
+        ]
+        
+        # Add simulation results
+        monitoring_tests.extend(simulation_results)
+        
+        if healing_success:
+            monitoring_tests.append(healing_success)
+        
+        successful_tests = sum(monitoring_tests)
+        total_tests = len(monitoring_tests)
+        success_rate = (successful_tests / total_tests) * 100 if total_tests > 0 else 0
+        
+        print(f"   📊 Monitoring Tests: {successful_tests}/{total_tests} passed ({success_rate:.1f}%)")
+        
+        return workflow_success and success_rate >= 70
+
     def test_integrations_hub_endpoints(self):
         """Test comprehensive Integrations Hub functionality"""
         print("\n🔗 Running Integrations Hub Tests...")
