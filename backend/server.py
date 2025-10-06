@@ -3801,6 +3801,260 @@ async def simulate_system_alert(severity: AlertSeverity = AlertSeverity.MEDIUM):
         raise HTTPException(status_code=500, detail=str(e))
 
 # ============================================================================
+# WEBSOCKET ENDPOINTS FOR REAL-TIME MONITORING
+# ============================================================================
+
+# WebSocket connection manager for monitoring
+class MonitoringConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+
+    async def broadcast_system_status(self, data: dict):
+        message = json.dumps({"type": "system_status", "data": data})
+        dead_connections = []
+        for connection in self.active_connections:
+            try:
+                await connection.send_text(message)
+            except Exception:
+                dead_connections.append(connection)
+        
+        # Remove dead connections
+        for conn in dead_connections:
+            self.disconnect(conn)
+
+    async def broadcast_alert(self, alert: dict):
+        message = json.dumps({"type": "new_alert", "data": alert})
+        dead_connections = []
+        for connection in self.active_connections:
+            try:
+                await connection.send_text(message)
+            except Exception:
+                dead_connections.append(connection)
+        
+        # Remove dead connections
+        for conn in dead_connections:
+            self.disconnect(conn)
+
+monitoring_manager = MonitoringConnectionManager()
+
+@app.websocket("/ws/monitoring")
+async def websocket_monitoring_endpoint(websocket: WebSocket):
+    """WebSocket endpoint for real-time monitoring updates"""
+    await monitoring_manager.connect(websocket)
+    try:
+        while True:
+            # Keep the connection alive and listen for client messages
+            data = await websocket.receive_text()
+            if data == "ping":
+                await websocket.send_text("pong")
+    except WebSocketDisconnect:
+        monitoring_manager.disconnect(websocket)
+    except Exception as e:
+        logger.error(f"WebSocket error: {str(e)}")
+        monitoring_manager.disconnect(websocket)
+
+# Background task for collecting and broadcasting real-time metrics
+async def collect_and_broadcast_metrics():
+    """Background task to collect metrics and broadcast to WebSocket clients"""
+    while True:
+        try:
+            # Get current system metrics
+            current_metrics = await get_current_system_metrics()
+            
+            # Count active alerts
+            active_alerts_count = await db.system_alerts.count_documents({"status": "active"})
+            
+            # Calculate uptime (simulated)
+            uptime_hours = random.uniform(120, 720)
+            
+            # Determine overall health
+            health = "healthy"
+            if current_metrics["cpu_usage"] > 80 or current_metrics["memory_usage"] > 85:
+                health = "warning"
+            if current_metrics["cpu_usage"] > 90 or current_metrics["memory_usage"] > 95:
+                health = "critical"
+            
+            system_status = {
+                "overall_health": health,
+                "cpu_usage": current_metrics["cpu_usage"],
+                "memory_usage": current_metrics["memory_usage"],
+                "disk_usage": current_metrics["disk_usage"],
+                "network_latency": current_metrics["network_latency"],
+                "api_response_time": current_metrics["api_response_time"],
+                "active_alerts": active_alerts_count,
+                "total_alerts_24h": await db.system_alerts.count_documents({
+                    "created_at": {"$gte": datetime.utcnow() - timedelta(hours=24)}
+                }),
+                "last_check": datetime.utcnow(),
+                "uptime": uptime_hours,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+            
+            # Store metrics for historical analysis
+            await store_historical_metric(current_metrics)
+            
+            # Broadcast to WebSocket clients
+            await monitoring_manager.broadcast_system_status(system_status)
+            
+            # Sleep for 10 seconds before next update
+            await asyncio.sleep(10)
+            
+        except Exception as e:
+            logger.error(f"Error in metrics collection: {str(e)}")
+            await asyncio.sleep(10)
+
+async def store_historical_metric(metrics: dict):
+    """Store current metrics for historical analysis and charting"""
+    try:
+        # Store individual metrics for charting
+        timestamp = datetime.utcnow()
+        
+        metrics_to_store = [
+            MonitoringMetric(
+                metric_name="cpu_usage",
+                value=metrics["cpu_usage"],
+                unit="percent",
+                timestamp=timestamp,
+                source="system_monitor",
+                metadata={"type": "real_time"}
+            ),
+            MonitoringMetric(
+                metric_name="memory_usage",
+                value=metrics["memory_usage"],
+                unit="percent",
+                timestamp=timestamp,
+                source="system_monitor",
+                metadata={"type": "real_time"}
+            ),
+            MonitoringMetric(
+                metric_name="disk_usage", 
+                value=metrics["disk_usage"],
+                unit="percent",
+                timestamp=timestamp,
+                source="system_monitor",
+                metadata={"type": "real_time"}
+            ),
+            MonitoringMetric(
+                metric_name="network_latency",
+                value=metrics["network_latency"],
+                unit="ms",
+                timestamp=timestamp,
+                source="system_monitor",
+                metadata={"type": "real_time"}
+            ),
+            MonitoringMetric(
+                metric_name="api_response_time",
+                value=metrics["api_response_time"],
+                unit="ms",
+                timestamp=timestamp,
+                source="system_monitor",
+                metadata={"type": "real_time"}
+            )
+        ]
+        
+        # Store all metrics in batch
+        for metric in metrics_to_store:
+            await db.monitoring_metrics.insert_one(metric.dict())
+            
+        # Clean up old metrics (keep only last 1000 entries per metric type)
+        for metric_name in ["cpu_usage", "memory_usage", "disk_usage", "network_latency", "api_response_time"]:
+            count = await db.monitoring_metrics.count_documents({"metric_name": metric_name})
+            if count > 1000:
+                # Get oldest entries to delete
+                oldest_entries = await db.monitoring_metrics.find(
+                    {"metric_name": metric_name}
+                ).sort("timestamp", 1).limit(count - 1000).to_list(length=None)
+                
+                # Delete oldest entries
+                if oldest_entries:
+                    oldest_ids = [entry["_id"] for entry in oldest_entries]
+                    await db.monitoring_metrics.delete_many({"_id": {"$in": oldest_ids}})
+                    
+    except Exception as e:
+        logger.error(f"Error storing historical metrics: {str(e)}")
+
+@api_router.get("/monitoring/metrics/historical/{metric_name}")
+async def get_historical_metrics(metric_name: str, hours: int = 24):
+    """Get historical metrics for charting"""
+    try:
+        # Calculate time range
+        end_time = datetime.utcnow()
+        start_time = end_time - timedelta(hours=hours)
+        
+        # Get historical data
+        metrics = await db.monitoring_metrics.find({
+            "metric_name": metric_name,
+            "timestamp": {"$gte": start_time, "$lte": end_time}
+        }).sort("timestamp", 1).to_list(length=None)
+        
+        # Format for charting
+        chart_data = []
+        for metric in metrics:
+            chart_data.append({
+                "timestamp": metric["timestamp"].isoformat(),
+                "value": metric["value"],
+                "unit": metric["unit"]
+            })
+        
+        return {
+            "metric_name": metric_name,
+            "data": chart_data,
+            "start_time": start_time.isoformat(),
+            "end_time": end_time.isoformat(),
+            "total_points": len(chart_data)
+        }
+    except Exception as e:
+        logger.error(f"Error getting historical metrics: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/monitoring/metrics/chart-data")
+async def get_chart_data(hours: int = 6):
+    """Get formatted data for all charts"""
+    try:
+        end_time = datetime.utcnow()
+        start_time = end_time - timedelta(hours=hours)
+        
+        # Get all metric types
+        metric_names = ["cpu_usage", "memory_usage", "disk_usage", "network_latency", "api_response_time"]
+        chart_data = {}
+        
+        for metric_name in metric_names:
+            metrics = await db.monitoring_metrics.find({
+                "metric_name": metric_name,
+                "timestamp": {"$gte": start_time, "$lte": end_time},
+                "metadata.type": "real_time"
+            }).sort("timestamp", 1).to_list(length=None)
+            
+            chart_data[metric_name] = {
+                "labels": [metric["timestamp"].strftime("%H:%M") for metric in metrics],
+                "data": [metric["value"] for metric in metrics],
+                "unit": metrics[0]["unit"] if metrics else "",
+                "count": len(metrics)
+            }
+        
+        return {
+            "success": True,
+            "chart_data": chart_data,
+            "time_range": f"Last {hours} hours",
+            "generated_at": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error getting chart data: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================================================
+# END WEBSOCKET AND REAL-TIME FEATURES
+# ============================================================================
+
+# ============================================================================
 # END MONITORING ENDPOINTS
 # ============================================================================
 
