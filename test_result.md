@@ -158,6 +158,9 @@ backend:
       - working: true
         agent: "main"
         comment: "Successfully implemented real-time metrics collection using psutil for CPU, memory, disk usage and simulated network/API metrics with proper error handling"
+      - working: true
+        agent: "testing"
+        comment: "METRICS COLLECTION VERIFIED - Real-time system metrics collection working correctly using psutil library. System status endpoint provides accurate CPU usage (11-12%), memory usage (~19.9%), and disk usage (~14.2%) with proper health status calculation logic (healthy/warning/critical based on CPU>80%/90% and memory>85%/95% thresholds). Network latency and API response times are appropriately simulated. Metrics are consistent across multiple requests and stored properly in MongoDB."
 
 frontend:
   - task: "Network Monitoring Dashboard Component"
