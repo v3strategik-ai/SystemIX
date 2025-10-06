@@ -24,6 +24,7 @@ const NetworkMonitoring = () => {
   const [loading, setLoading] = useState(true);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [lastAnalysis, setLastAnalysis] = useState(null);
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   const backendUrl = process.env.REACT_APP_BACKEND_URL || import.meta.env.REACT_APP_BACKEND_URL;
 
