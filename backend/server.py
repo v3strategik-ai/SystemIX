@@ -4077,6 +4077,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+@app.on_event("startup")
+async def startup_event():
+    """Initialize background tasks on startup"""
+    # Start background metrics collection
+    asyncio.create_task(collect_and_broadcast_metrics())
+    logger.info("Started real-time metrics collection background task")
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
