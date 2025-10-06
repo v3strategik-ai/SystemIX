@@ -127,6 +127,8 @@ function App() {
                 <Route path="/quotes" element={<QuotingTool />} />
                 <Route path="/documents" element={<DocumentCenter />} />
                 <Route path="/integrations" element={<IntegrationsHub />} />
+                <Route path="/monitoring" element={<NetworkMonitoring />} />
+                <Route path="/settings" element={<Settings />} />
               </Routes>
             </main>
           </div>
