@@ -976,6 +976,9 @@ def main():
     print("\n📄 Running Document Center Tests...")
     tester.test_document_center_endpoints()
     
+    print("\n🔍 Running Network Monitoring Bot Tests...")
+    tester.test_monitoring_endpoints()
+    
     print("\n🔗 Running Integrations Hub Tests...")
     tester.test_integrations_hub_endpoints()
     
