@@ -415,7 +415,8 @@ const NetworkMonitoring = () => {
         )}
 
         {/* Alerts Tab */}
-        <TabsContent value="alerts" className="space-y-4">
+        {activeTab === 'alerts' && (
+          <div className="space-y-4 mt-6">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold">System Alerts</h3>
             <Button onClick={fetchAlerts} variant="outline">
