@@ -382,40 +382,37 @@ const NetworkMonitoring = () => {
           </div>
 
           {/* Testing Actions */}
-          <Card className="p-6">
+          <div className="bg-white p-6 rounded-lg shadow border">
             <h3 className="text-lg font-semibold mb-4">Testing & Simulation</h3>
             <div className="flex gap-2 flex-wrap">
-              <Button 
-                variant="outline" 
+              <button 
                 onClick={() => simulateAlert('low')}
-                className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                className="text-blue-600 border border-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg"
               >
                 Simulate Low Alert
-              </Button>
-              <Button 
-                variant="outline" 
+              </button>
+              <button 
                 onClick={() => simulateAlert('medium')}
-                className="text-yellow-600 border-yellow-600 hover:bg-yellow-50"
+                className="text-yellow-600 border border-yellow-600 hover:bg-yellow-50 px-4 py-2 rounded-lg"
               >
                 Simulate Medium Alert
-              </Button>
-              <Button 
-                variant="outline" 
+              </button>
+              <button 
                 onClick={() => simulateAlert('high')}
-                className="text-orange-600 border-orange-600 hover:bg-orange-50"
+                className="text-orange-600 border border-orange-600 hover:bg-orange-50 px-4 py-2 rounded-lg"
               >
                 Simulate High Alert
-              </Button>
-              <Button 
-                variant="outline" 
+              </button>
+              <button 
                 onClick={() => simulateAlert('critical')}
-                className="text-red-600 border-red-600 hover:bg-red-50"
+                className="text-red-600 border border-red-600 hover:bg-red-50 px-4 py-2 rounded-lg"
               >
                 Simulate Critical Alert
-              </Button>
+              </button>
             </div>
-          </Card>
-        </TabsContent>
+          </div>
+        </div>
+        )}
 
         {/* Alerts Tab */}
         <TabsContent value="alerts" className="space-y-4">
