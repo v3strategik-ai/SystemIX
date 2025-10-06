@@ -3399,35 +3399,82 @@ async def get_current_system_metrics():
             "api_response_time": random.uniform(100, 300),
         }
 
-# AI-powered anomaly detection function
+# Enhanced AI-powered analysis with predictive capabilities
 async def analyze_metrics_with_ai(metrics_data: List[Dict], current_metrics: Dict):
-    """Use AI to analyze metrics and detect anomalies"""
+    """Advanced AI analysis with predictive analytics, pattern recognition, and trend forecasting"""
     try:
-        # Initialize AI chat for analysis
+        # Initialize AI chat for advanced analysis
         chat = LlmChat(
             api_key=os.environ.get('OPENAI_API_KEY') or os.environ.get('EMERGENT_LLM_KEY'),
             session_id=f"monitoring_analysis_{uuid.uuid4()}",
-            system_message="You are an expert system monitoring AI. Analyze system metrics to detect anomalies, patterns, and potential issues. Provide actionable insights and recommendations."
+            system_message="You are an advanced system monitoring AI with capabilities in predictive analytics, pattern recognition, and trend forecasting. Analyze system metrics to provide deep insights, predictions, and proactive recommendations."
         ).with_model("openai", "gpt-4o")
         
-        # Prepare metrics data for AI analysis
+        # Calculate historical trends and patterns
+        historical_analysis = await calculate_historical_trends(metrics_data)
+        
+        # Prepare enhanced metrics data for AI analysis
         analysis_prompt = f"""
-        Current System Metrics:
+        CURRENT SYSTEM STATE:
         - CPU Usage: {current_metrics['cpu_usage']:.1f}%
         - Memory Usage: {current_metrics['memory_usage']:.1f}%
         - Disk Usage: {current_metrics['disk_usage']:.1f}%
         - Network Latency: {current_metrics['network_latency']:.1f}ms
         - API Response Time: {current_metrics['api_response_time']:.1f}ms
         
-        Historical Data Points: {len(metrics_data)} recent measurements
+        HISTORICAL ANALYSIS:
+        - Data Points: {len(metrics_data)} recent measurements
+        - CPU Trend: {historical_analysis.get('cpu_trend', 'stable')}
+        - Memory Trend: {historical_analysis.get('memory_trend', 'stable')}
+        - Alert Patterns: {historical_analysis.get('alert_patterns', 'normal')}
+        - Performance Correlation: {historical_analysis.get('performance_correlation', 'good')}
         
-        Please analyze these metrics and:
-        1. Identify any anomalies or concerning patterns
-        2. Assess overall system health (healthy/warning/critical)
-        3. Provide specific recommendations for optimization
-        4. Suggest any automated healing actions if needed
+        ADVANCED ANALYSIS REQUIRED:
+        1. **Predictive Analytics**: 
+           - Predict likely system behavior in next 2-6 hours
+           - Identify potential resource exhaustion scenarios
+           - Forecast when thresholds might be breached
         
-        Format your response as JSON with: health_status, anomalies_detected, recommendations, healing_actions
+        2. **Pattern Recognition**:
+           - Identify recurring patterns or cycles
+           - Detect seasonal or time-based performance changes
+           - Compare current state to historical similar scenarios
+        
+        3. **Trend Forecasting**:
+           - Project resource usage trends (CPU, memory, disk growth)
+           - Estimate capacity planning needs
+           - Predict optimal maintenance windows
+        
+        4. **Anomaly Detection**:
+           - Current anomalies or unusual deviations
+           - Correlation between different metrics
+           - Early warning indicators
+        
+        5. **Proactive Recommendations**:
+           - Preventive actions to avoid future issues
+           - Performance optimization opportunities
+           - Resource scaling recommendations
+        
+        Please provide a comprehensive analysis in the following JSON structure:
+        {{
+            "health_status": "healthy/warning/critical",
+            "current_anomalies": ["list of immediate concerns"],
+            "predictions": {{
+                "next_2_hours": "prediction for immediate future",
+                "next_6_hours": "medium-term prediction",
+                "resource_exhaustion_risk": "low/medium/high"
+            }},
+            "patterns_detected": ["list of patterns found"],
+            "trend_analysis": {{
+                "cpu_trend": "increasing/decreasing/stable",
+                "memory_trend": "increasing/decreasing/stable", 
+                "performance_trend": "improving/degrading/stable"
+            }},
+            "recommendations": ["list of actionable recommendations"],
+            "proactive_actions": ["preventive measures to implement"],
+            "healing_actions": ["immediate healing actions if needed"],
+            "capacity_planning": "insights for future resource planning"
+        }}
         """
         
         user_message = UserMessage(text=analysis_prompt)
@@ -3435,8 +3482,54 @@ async def analyze_metrics_with_ai(metrics_data: List[Dict], current_metrics: Dic
         
         return response
     except Exception as e:
-        logger.error(f"AI analysis failed: {str(e)}")
+        logger.error(f"Enhanced AI analysis failed: {str(e)}")
         return "AI analysis temporarily unavailable. System appears stable based on threshold checks."
+
+# Historical trend calculation helper
+async def calculate_historical_trends(metrics_data: List[Dict]) -> Dict:
+    """Calculate historical trends from metrics data"""
+    try:
+        if not metrics_data:
+            return {"cpu_trend": "stable", "memory_trend": "stable", "alert_patterns": "normal"}
+        
+        # Extract CPU and memory values from historical data
+        cpu_values = []
+        memory_values = []
+        
+        for metric in metrics_data:
+            if isinstance(metric.get('metadata'), dict):
+                cpu_values.append(metric['metadata'].get('cpu_usage', 0))
+                memory_values.append(metric['metadata'].get('memory_usage', 0))
+        
+        # Calculate trends
+        cpu_trend = "stable"
+        memory_trend = "stable"
+        
+        if len(cpu_values) >= 3:
+            recent_cpu = sum(cpu_values[:3]) / 3
+            older_cpu = sum(cpu_values[3:6]) / max(1, len(cpu_values[3:6]))
+            if recent_cpu > older_cpu * 1.1:
+                cpu_trend = "increasing"
+            elif recent_cpu < older_cpu * 0.9:
+                cpu_trend = "decreasing"
+        
+        if len(memory_values) >= 3:
+            recent_memory = sum(memory_values[:3]) / 3
+            older_memory = sum(memory_values[3:6]) / max(1, len(memory_values[3:6]))
+            if recent_memory > older_memory * 1.1:
+                memory_trend = "increasing"
+            elif recent_memory < older_memory * 0.9:
+                memory_trend = "decreasing"
+        
+        return {
+            "cpu_trend": cpu_trend,
+            "memory_trend": memory_trend,
+            "alert_patterns": "normal",
+            "performance_correlation": "good"
+        }
+    except Exception as e:
+        logger.error(f"Error calculating historical trends: {str(e)}")
+        return {"cpu_trend": "stable", "memory_trend": "stable", "alert_patterns": "normal"}
 
 @api_router.get("/monitoring/system-status")
 async def get_system_status():
