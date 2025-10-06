@@ -1,11 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Card } from './ui/card';
-import { Badge } from './ui/badge';
-import { Button } from './ui/button';
-import { Alert } from './ui/alert';
-import { Separator } from './ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Progress } from './ui/progress';
 import { 
   Activity, 
   AlertTriangle, 
