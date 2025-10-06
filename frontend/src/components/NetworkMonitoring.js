@@ -228,7 +228,7 @@ const NetworkMonitoring = () => {
       {/* System Status Overview */}
       {systemStatus && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="p-4">
+          <div className="bg-white p-4 rounded-lg shadow border">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">System Health</p>
@@ -238,31 +238,35 @@ const NetworkMonitoring = () => {
               </div>
               <Server className={`h-8 w-8 ${getHealthColor(systemStatus.overall_health)}`} />
             </div>
-          </Card>
+          </div>
 
-          <Card className="p-4">
+          <div className="bg-white p-4 rounded-lg shadow border">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">CPU Usage</p>
                 <p className="text-2xl font-bold text-gray-900">{systemStatus.cpu_usage.toFixed(1)}%</p>
-                <Progress value={systemStatus.cpu_usage} className="mt-2" />
+                <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                  <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${systemStatus.cpu_usage}%` }}></div>
+                </div>
               </div>
               <Cpu className="h-8 w-8 text-blue-600" />
             </div>
-          </Card>
+          </div>
 
-          <Card className="p-4">
+          <div className="bg-white p-4 rounded-lg shadow border">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Memory Usage</p>
                 <p className="text-2xl font-bold text-gray-900">{systemStatus.memory_usage.toFixed(1)}%</p>
-                <Progress value={systemStatus.memory_usage} className="mt-2" />
+                <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                  <div className="bg-green-600 h-2 rounded-full" style={{ width: `${systemStatus.memory_usage}%` }}></div>
+                </div>
               </div>
               <MemoryStick className="h-8 w-8 text-green-600" />
             </div>
-          </Card>
+          </div>
 
-          <Card className="p-4">
+          <div className="bg-white p-4 rounded-lg shadow border">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Active Alerts</p>
@@ -271,7 +275,7 @@ const NetworkMonitoring = () => {
               </div>
               <AlertTriangle className="h-8 w-8 text-orange-600" />
             </div>
-          </Card>
+          </div>
         </div>
       )}
 
