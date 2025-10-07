@@ -52,13 +52,15 @@ const Dashboard = () => {
       name: 'Generate Leads',
       description: 'AI-powered prospecting',
       icon: '🎯',
-      color: 'bg-green-500'
+      color: 'bg-green-500',
+      path: '/leads'
     },
     {
       name: 'Create Document',
       description: 'From templates',
       icon: '📄',
-      color: 'bg-orange-500'
+      color: 'bg-orange-500',
+      path: '/documents'
     }
   ];
 
