@@ -6,6 +6,7 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [metrics, setMetrics] = useState(null);
   const [insights, setInsights] = useState([]);
   const [recentActivities] = useState([
