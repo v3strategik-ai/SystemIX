@@ -79,6 +79,40 @@ const QuotingTool = () => {
     }
   };
 
+  const initializeSampleData = async () => {
+    try {
+      await axios.post(`${API}/quotes/init-sample-data`);
+      fetchData(); // Refresh all data after initialization
+      alert('Sample data initialized successfully!');
+    } catch (error) {
+      console.error('Error initializing sample data:', error);
+      alert('Error initializing sample data. Please try again.');
+    }
+  };
+
+  const viewQuote = (quote) => {
+    setSelectedQuote(quote);
+    setActiveView('view');
+  };
+
+  const editQuote = (quote) => {
+    setSelectedQuote(quote);
+    setActiveView('edit');
+  };
+
+  const deleteQuote = async (quoteId) => {
+    if (window.confirm('Are you sure you want to delete this quote?')) {
+      try {
+        await axios.delete(`${API}/quotes/${quoteId}`);
+        setQuotes(quotes.filter(q => q.id !== quoteId));
+        fetchData(); // Refresh analytics
+      } catch (error) {
+        console.error('Error deleting quote:', error);
+        alert('Error deleting quote. Please try again.');
+      }
+    }
+  };
+
   const sendQuote = async (quoteId) => {
     try {
       await axios.post(`${API}/quotes/${quoteId}/send`);
