@@ -316,7 +316,10 @@ const QuotingTool = () => {
                     {new Date(quote.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                    <button className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300">
+                    <button 
+                      onClick={() => viewQuote(quote)}
+                      className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                    >
                       View
                     </button>
                     {quote.status === 'draft' && (
