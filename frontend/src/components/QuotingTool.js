@@ -330,7 +330,10 @@ const QuotingTool = () => {
                         Send
                       </button>
                     )}
-                    <button className="text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                    <button 
+                      onClick={() => editQuote(quote)}
+                      className="text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                    >
                       Edit
                     </button>
                   </td>
