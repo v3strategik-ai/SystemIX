@@ -116,6 +116,21 @@ const QuotingTool = () => {
   const sendQuote = async (quoteId) => {
     try {
       await axios.post(`${API}/quotes/${quoteId}/send`);
+      // Update the quote status in local state
+      setQuotes(quotes.map(q => 
+        q.id === quoteId ? { ...q, status: 'sent' } : q
+      ));
+      fetchData(); // Refresh analytics
+      alert('Quote sent successfully!');
+    } catch (error) {
+      console.error('Error sending quote:', error);
+      alert('Error sending quote. Please try again.');
+    }
+  };
+
+  const sendQuote = async (quoteId) => {
+    try {
+      await axios.post(`${API}/quotes/${quoteId}/send`);
       setQuotes(quotes.map(quote => 
         quote.id === quoteId ? { ...quote, status: 'sent', sent_at: new Date().toISOString() } : quote
       ));
