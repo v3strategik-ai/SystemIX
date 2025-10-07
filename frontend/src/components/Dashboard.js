@@ -38,13 +38,15 @@ const Dashboard = () => {
       name: 'Train AI Bot',
       description: 'Upload knowledge base',
       icon: '🤖',
-      color: 'bg-blue-500'
+      color: 'bg-blue-500',
+      path: '/settings'
     },
     {
       name: 'Create Workflow',
       description: 'Automate processes',
       icon: '⚡',
-      color: 'bg-purple-500'
+      color: 'bg-purple-500',
+      path: '/workflows'
     },
     {
       name: 'Generate Leads',
