@@ -237,7 +237,8 @@ const Dashboard = () => {
           {quickActions.map((action, index) => (
             <button
               key={index}
-              className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 text-left group card-hover"
+              onClick={() => navigate(action.path)}
+              className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 text-left group card-hover cursor-pointer"
             >
               <div className="flex items-center space-x-3 mb-2">
                 <div className={`w-10 h-10 ${action.color} rounded-lg flex items-center justify-center text-white text-lg`}>
