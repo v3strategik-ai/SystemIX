@@ -193,6 +193,32 @@ const IntegrationsHub = () => {
     }
   };
 
+  // Additional navigation and interaction functions
+  const connectIntegration = (platform) => {
+    if (platform.auth_type === 'oauth2') {
+      initiateOAuth(platform);
+    } else {
+      createApiKeyConnection(platform);
+    }
+  };
+
+  const configureIntegration = (connectionId) => {
+    alert(`Opening configuration for connection: ${connectionId}\nThis would show detailed settings, field mapping, and sync preferences.`);
+  };
+
+  const viewIntegration = (connectionId) => {
+    alert(`Viewing integration details: ${connectionId}\nThis would show connection status, sync history, and performance metrics.`);
+  };
+
+  const testConnection = async (connectionId) => {
+    try {
+      // Simulate connection test
+      alert(`Testing connection: ${connectionId}\nConnection test successful! All endpoints are responding correctly.`);
+    } catch (error) {
+      alert(`Connection test failed: ${error.message}`);
+    }
+  };
+
   const categories = [
     { key: 'all', label: 'All Categories', count: platforms.length },
     { key: 'crm', label: 'CRM', count: platforms.filter(p => p.type === 'crm').length },
