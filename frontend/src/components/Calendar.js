@@ -60,6 +60,129 @@ const Calendar = () => {
     }
   };
 
+  const deleteEvent = async (eventId, eventTitle) => {
+    if (window.confirm(`Are you sure you want to delete "${eventTitle}"?\n\nThis action cannot be undone.`)) {
+      try {
+        await axios.delete(`${API}/calendar/events/${eventId}`);
+        setEvents(events.filter(event => event.id !== eventId));
+        
+        // Show success message
+        alert(`Event "${eventTitle}" has been successfully deleted.`);
+        
+        // Clear selected event if it was the deleted one
+        if (selectedEvent && selectedEvent.id === eventId) {
+          setSelectedEvent(null);
+        }
+      } catch (error) {
+        console.error('Error deleting event:', error);
+        alert('Failed to delete event. Please try again.');
+      }
+    }
+  };
+
+  const shareEvent = async (event) => {
+    try {
+      // Format event details for sharing
+      const eventDetails = `
+🗓️ EVENT INVITATION
+
+📋 ${event.title}
+📅 ${new Date(event.start_time).toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      })}
+⏰ ${new Date(event.start_time).toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      })} - ${new Date(event.end_time).toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      })}
+📍 ${event.location || 'Location TBD'}
+
+📝 Description:
+${event.description || 'No description provided'}
+
+---
+Sent from SystemIX AI Platinum Suite
+      `.trim();
+
+      // Try to use Web Share API if available
+      if (navigator.share) {
+        await navigator.share({
+          title: `Event: ${event.title}`,
+          text: eventDetails,
+          url: window.location.href
+        });
+        alert('Event shared successfully!');
+      } else {
+        // Fallback: Copy to clipboard
+        await navigator.clipboard.writeText(eventDetails);
+        alert('Event details copied to clipboard!\n\nYou can now paste and share via email, messaging, or any other platform.');
+      }
+    } catch (error) {
+      console.error('Error sharing event:', error);
+      
+      // Ultimate fallback: Show details in a modal for manual copying
+      const fallbackShare = window.confirm(
+        `Share Event: ${event.title}\n\nWould you like to see the event details to copy manually?`
+      );
+      
+      if (fallbackShare) {
+        const eventInfo = `Event: ${event.title}\nDate: ${new Date(event.start_time).toLocaleString()}\nLocation: ${event.location || 'TBD'}\nDescription: ${event.description || 'None'}`;
+        prompt('Copy these event details to share:', eventInfo);
+      }
+    }
+  };
+
+  const editEvent = async (event) => {
+    // Populate the form with existing event data
+    setNewEvent({
+      ...event,
+      start_time: new Date(event.start_time).toISOString().slice(0, 16),
+      end_time: new Date(event.end_time).toISOString().slice(0, 16),
+      attendees: event.attendees || []
+    });
+    setEditingEvent(event);
+    setShowCreateModal(true);
+  };
+
+  const updateEvent = async () => {
+    try {
+      const eventData = {
+        ...newEvent,
+        start_time: new Date(newEvent.start_time).toISOString(),
+        end_time: new Date(newEvent.end_time).toISOString(),
+        attendees: newEvent.attendees.filter(a => a.trim() !== '')
+      };
+      
+      const response = await axios.put(`${API}/calendar/events/${editingEvent.id}`, eventData);
+      setEvents(events.map(event => 
+        event.id === editingEvent.id ? response.data : event
+      ));
+      
+      // Reset form and close modal
+      setNewEvent({
+        title: '',
+        description: '',
+        start_time: new Date().toISOString().slice(0, 16),
+        end_time: new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 16),
+        location: '',
+        attendees: [],
+        created_by: 'current_user'
+      });
+      setEditingEvent(null);
+      setShowCreateModal(false);
+      
+      alert('Event updated successfully!');
+    } catch (error) {
+      console.error('Error updating event:', error);
+      alert('Failed to update event. Please try again.');
+    }
+  };
+
   const getDaysInMonth = (date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
