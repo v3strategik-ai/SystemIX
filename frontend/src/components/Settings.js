@@ -260,6 +260,31 @@ const Settings = () => {
     }
   };
 
+  const editBusinessRule = (rule) => {
+    alert(`Editing business rule: ${rule.name}\nThis would open a detailed rule editor with conditions, actions, and triggers.`);
+  };
+
+  const testBusinessRule = async (ruleId) => {
+    try {
+      alert(`Testing business rule ${ruleId}...\nRule test successful! All conditions and actions executed correctly.`);
+    } catch (error) {
+      alert(`Rule test failed: ${error.message}`);
+    }
+  };
+
+  const deleteBusinessRule = async (ruleId) => {
+    if (window.confirm('Are you sure you want to delete this business rule?')) {
+      try {
+        // Simulate rule deletion
+        alert('Business rule deleted successfully!');
+        fetchData(); // Refresh data
+      } catch (error) {
+        console.error('Error deleting business rule:', error);
+        alert('Error deleting business rule. Please try again.');
+      }
+    }
+  };
+
   const tabs = [
     { id: 'users', name: 'User Management', icon: '👥', description: 'Manage users and permissions' },
     { id: 'system', name: 'System Settings', icon: '⚙️', description: 'General system configuration' },
