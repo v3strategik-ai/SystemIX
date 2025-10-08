@@ -111,18 +111,19 @@ const Sidebar = ({ open, setOpen, darkMode, toggleDarkMode, currentUser }) => {
   return (
     <div className={`fixed inset-y-0 left-0 z-50 transition-all duration-300 ${open ? 'w-64' : 'w-16'}`}>
       <div className="flex flex-col h-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border-r border-gray-200/50 dark:border-gray-700/50">
-        {/* Logo */}
-        <div className="flex items-center justify-center h-16 px-4 border-b border-gray-200/50 dark:border-gray-700/50">
+        {/* SystemIX Logo */}
+        <div className="flex items-center justify-center h-20 px-4 border-b border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-gray-900 to-gray-800">
           {open ? (
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">S</span>
-              </div>
-              <span className="text-lg font-bold gradient-text">SystemIX AI</span>
+            <div className="flex flex-col items-center space-y-1">
+              <img 
+                src="https://customer-assets.emergentagent.com/job_systemix-hub/artifacts/mtljh65o_Photoroom_20251008_112152.PNG" 
+                alt="SystemIX Logo" 
+                className="h-12 w-auto object-contain filter drop-shadow-lg"
+              />
             </div>
           ) : (
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">S</span>
+            <div className="w-10 h-10 bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-xl">
+              <span className="text-white font-bold text-lg bg-gradient-to-r from-cyan-300 to-purple-300 bg-clip-text text-transparent">S</span>
             </div>
           )}
         </div>
