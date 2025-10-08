@@ -454,7 +454,10 @@ const DocumentCenter = () => {
                   >
                     Use Template
                   </button>
-                  <button className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-medium py-2 px-3 rounded-lg border border-gray-300 dark:border-gray-600 transition-colors">
+                  <button 
+                    onClick={() => previewTemplate(template)}
+                    className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-medium py-2 px-3 rounded-lg border border-gray-300 dark:border-gray-600 transition-colors"
+                  >
                     Preview
                   </button>
                 </div>
