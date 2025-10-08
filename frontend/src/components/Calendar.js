@@ -561,11 +561,11 @@ Sent from SystemIX AI Platinum Suite
             
             <div className="flex space-x-3 mt-6">
               <button
-                onClick={createEvent}
+                onClick={editingEvent ? updateEvent : createEvent}
                 className="flex-1 btn-primary"
                 disabled={!newEvent.title || !newEvent.start_time || !newEvent.end_time}
               >
-                Create Event
+                {editingEvent ? 'Update Event' : 'Create Event'}
               </button>
               <button
                 onClick={() => setShowCreateModal(false)}
