@@ -111,18 +111,18 @@ const Dashboard = () => {
 
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl p-6 border border-gray-200/50 dark:border-gray-700/50 card-hover">
+        <div className="bg-gradient-to-br from-white/10 to-systemix-metallic/20 backdrop-blur-lg rounded-xl p-6 border border-systemix-electric/20 hover:border-systemix-electric/40 hover:shadow-xl hover:shadow-systemix-electric/20 transition-all duration-300 transform hover:scale-105">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Revenue</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">
+              <p className="text-sm font-medium text-gray-300">Total Revenue</p>
+              <p className="text-3xl font-bold text-white">
                 ${(metrics.total_revenue / 1000000).toFixed(1)}M
               </p>
-              <p className="text-sm text-green-600 dark:text-green-400">
+              <p className="text-sm text-systemix-electric">
                 +{metrics.revenue_growth}% from last month
               </p>
             </div>
-            <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+            <div className="w-12 h-12 bg-gradient-to-r from-systemix-electric to-systemix-purple rounded-xl flex items-center justify-center shadow-lg shadow-systemix-electric/30">
               <span className="text-2xl">💰</span>
             </div>
           </div>
