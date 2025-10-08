@@ -110,7 +110,7 @@ const Sidebar = ({ open, setOpen, darkMode, toggleDarkMode, currentUser }) => {
 
   return (
     <div className={`fixed inset-y-0 left-0 z-50 transition-all duration-300 ${open ? 'w-64' : 'w-16'}`}>
-      <div className="flex flex-col h-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border-r border-gray-200/50 dark:border-gray-700/50">
+      <div className="flex flex-col h-full bg-gradient-to-b from-systemix-dark via-systemix-metallic to-systemix-dark backdrop-blur-sm border-r border-systemix-electric/20 shadow-2xl shadow-systemix-electric/10">
         {/* SystemIX Logo */}
         <div className="flex items-center justify-center h-20 px-4 border-b border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-gray-900 to-gray-800">
           {open ? (
