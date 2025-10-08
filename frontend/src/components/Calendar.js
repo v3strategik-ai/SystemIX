@@ -48,8 +48,8 @@ const Calendar = () => {
       setNewEvent({
         title: '',
         description: '',
-        start_time: '',
-        end_time: '',
+        start_time: new Date().toISOString().slice(0, 16), // Reset to current time
+        end_time: new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 16), // 1 hour later
         location: '',
         attendees: [],
         created_by: 'current_user'
