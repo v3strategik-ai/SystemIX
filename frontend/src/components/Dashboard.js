@@ -238,19 +238,19 @@ const Dashboard = () => {
             <button
               key={index}
               onClick={() => navigate(action.path)}
-              className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 text-left group card-hover cursor-pointer"
+              className="p-6 bg-gradient-to-br from-white/10 to-systemix-metallic/20 backdrop-blur-lg rounded-xl border border-systemix-electric/20 hover:border-systemix-electric/40 hover:shadow-xl hover:shadow-systemix-electric/20 transition-all duration-300 text-left group cursor-pointer transform hover:scale-105"
             >
-              <div className="flex items-center space-x-3 mb-2">
-                <div className={`w-10 h-10 ${action.color} rounded-lg flex items-center justify-center text-white text-lg`}>
+              <div className="flex items-center space-x-4 mb-3">
+                <div className={`w-12 h-12 bg-gradient-to-r from-systemix-electric to-systemix-purple rounded-xl flex items-center justify-center text-white text-xl shadow-lg shadow-systemix-electric/30`}>
                   {action.icon}
                 </div>
                 <div>
-                  <h3 className="font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                  <h3 className="font-semibold text-white group-hover:text-systemix-electric transition-colors text-lg">
                     {action.name}
                   </h3>
                 </div>
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">{action.description}</p>
+              <p className="text-sm text-gray-300 group-hover:text-white transition-colors">{action.description}</p>
             </button>
           ))}
         </div>
