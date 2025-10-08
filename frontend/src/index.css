@@ -2,6 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
+/* SystemIX Enhanced Color Palette */
+:root {
+  /* Primary SystemIX Colors */
+  --systemix-electric-blue: #00FFFF;
+  --systemix-bright-blue: #007FFF;
+  --systemix-deep-blue: #0066CC;
+  --systemix-purple: #9932CC;
+  --systemix-pink: #FF00FF;
+  --systemix-metallic-grey: #333366;
+  --systemix-dark-grey: #1A1A33;
+  
+  /* Enhanced Gradients */
+  --systemix-primary-gradient: linear-gradient(135deg, #00FFFF 0%, #007FFF 50%, #9932CC 100%);
+  --systemix-secondary-gradient: linear-gradient(135deg, #007FFF 0%, #9932CC 100%);
+  --systemix-accent-gradient: linear-gradient(135deg, #FF00FF 0%, #9932CC 100%);
+  --systemix-dark-gradient: linear-gradient(135deg, #1A1A33 0%, #333366 100%);
+}
+
 body {
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
@@ -9,11 +27,47 @@ body {
         "Helvetica Neue", sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    background: var(--systemix-dark-gradient);
 }
 
 code {
     font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
         monospace;
+}
+
+/* SystemIX Custom Components */
+.systemix-button-primary {
+  background: var(--systemix-primary-gradient);
+  box-shadow: 0 4px 20px rgba(0, 255, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.systemix-button-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 255, 255, 0.4);
+}
+
+.systemix-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.systemix-card:hover {
+  border-color: rgba(0, 255, 255, 0.4);
+  box-shadow: 0 12px 40px rgba(0, 255, 255, 0.15);
+}
+
+.systemix-glow {
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+}
+
+.systemix-text-gradient {
+  background: var(--systemix-primary-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 
