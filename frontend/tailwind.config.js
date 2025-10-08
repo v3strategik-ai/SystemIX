@@ -13,6 +13,16 @@ module.exports = {
   			sm: 'calc(var(--radius) - 4px)'
   		},
   		colors: {
+  			// SystemIX Brand Colors
+  			systemix: {
+  				'electric': '#00FFFF',
+  				'bright-blue': '#007FFF',
+  				'deep-blue': '#0066CC',
+  				'purple': '#9932CC',
+  				'pink': '#FF00FF',
+  				'metallic': '#333366',
+  				'dark': '#1A1A33',
+  			},
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {
