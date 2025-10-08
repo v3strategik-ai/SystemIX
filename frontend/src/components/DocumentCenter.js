@@ -591,7 +591,10 @@ const DocumentCenter = () => {
                   {templates.filter(t => t.category_id === category.id).length} templates,{' '}
                   {documents.filter(d => d.category_id === category.id).length} documents
                 </span>
-                <button className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
+                <button 
+                  onClick={() => viewCategoryDocuments(category.id)}
+                  className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+                >
                   View All
                 </button>
               </div>
