@@ -568,7 +568,19 @@ Sent from SystemIX AI Platinum Suite
                 {editingEvent ? 'Update Event' : 'Create Event'}
               </button>
               <button
-                onClick={() => setShowCreateModal(false)}
+                onClick={() => {
+                  setShowCreateModal(false);
+                  setEditingEvent(null);
+                  setNewEvent({
+                    title: '',
+                    description: '',
+                    start_time: new Date().toISOString().slice(0, 16),
+                    end_time: new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 16),
+                    location: '',
+                    attendees: [],
+                    created_by: 'current_user'
+                  });
+                }}
                 className="flex-1 btn-secondary"
               >
                 Cancel
