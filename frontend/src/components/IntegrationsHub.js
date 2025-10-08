@@ -476,7 +476,10 @@ const IntegrationsHub = () => {
                       >
                         Sync Now
                       </button>
-                      <button className="text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                      <button 
+                        onClick={() => configureIntegration(connection.id)}
+                        className="text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                      >
                         Configure
                       </button>
                       <button
