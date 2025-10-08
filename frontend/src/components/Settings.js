@@ -371,15 +371,24 @@ const Settings = () => {
                       {user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                      <button className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300">
+                      <button 
+                        onClick={() => editUser(user)}
+                        className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                      >
                         Edit
                       </button>
-                      <button className="text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
-                        Permissions
+                      <button 
+                        onClick={() => resetPassword(user.id)}
+                        className="text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                      >
+                        Reset Password
                       </button>
                       {user.role !== 'admin' && (
-                        <button className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300">
-                          Deactivate
+                        <button 
+                          onClick={() => deleteUser(user.id)}
+                          className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
+                        >
+                          Delete
                         </button>
                       )}
                     </td>
