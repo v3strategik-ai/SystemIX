@@ -128,46 +128,46 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl p-6 border border-gray-200/50 dark:border-gray-700/50 card-hover">
+        <div className="bg-gradient-to-br from-white/10 to-systemix-metallic/20 backdrop-blur-lg rounded-xl p-6 border border-systemix-bright-blue/20 hover:border-systemix-bright-blue/40 hover:shadow-xl hover:shadow-systemix-bright-blue/20 transition-all duration-300 transform hover:scale-105">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Workflows</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">{metrics.active_workflows}</p>
-              <p className="text-sm text-blue-600 dark:text-blue-400">
+              <p className="text-sm font-medium text-gray-300">Active Workflows</p>
+              <p className="text-3xl font-bold text-white">{metrics.active_workflows}</p>
+              <p className="text-sm text-systemix-bright-blue">
                 {metrics.automated_today} automated today
               </p>
             </div>
-            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+            <div className="w-12 h-12 bg-gradient-to-r from-systemix-bright-blue to-systemix-electric rounded-xl flex items-center justify-center shadow-lg shadow-systemix-bright-blue/30">
               <span className="text-2xl">⚡</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl p-6 border border-gray-200/50 dark:border-gray-700/50 card-hover">
+        <div className="bg-gradient-to-br from-white/10 to-systemix-metallic/20 backdrop-blur-lg rounded-xl p-6 border border-systemix-purple/20 hover:border-systemix-purple/40 hover:shadow-xl hover:shadow-systemix-purple/20 transition-all duration-300 transform hover:scale-105">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">AI Tasks Completed</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">{metrics.ai_tasks_completed.toLocaleString()}</p>
-              <p className="text-sm text-purple-600 dark:text-purple-400">
+              <p className="text-sm font-medium text-gray-300">AI Tasks Completed</p>
+              <p className="text-3xl font-bold text-white">{metrics.ai_tasks_completed.toLocaleString()}</p>
+              <p className="text-sm text-systemix-purple">
                 {metrics.success_rate}% success rate
               </p>
             </div>
-            <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+            <div className="w-12 h-12 bg-gradient-to-r from-systemix-purple to-systemix-pink rounded-xl flex items-center justify-center shadow-lg shadow-systemix-purple/30">
               <span className="text-2xl">🤖</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl p-6 border border-gray-200/50 dark:border-gray-700/50 card-hover">
+        <div className="bg-gradient-to-br from-white/10 to-systemix-metallic/20 backdrop-blur-lg rounded-xl p-6 border border-systemix-pink/20 hover:border-systemix-pink/40 hover:shadow-xl hover:shadow-systemix-pink/20 transition-all duration-300 transform hover:scale-105">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Team Members</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">{metrics.team_members}</p>
-              <p className="text-sm text-orange-600 dark:text-orange-400">
+              <p className="text-sm font-medium text-gray-300">Team Members</p>
+              <p className="text-3xl font-bold text-white">{metrics.team_members}</p>
+              <p className="text-sm text-systemix-pink">
                 {metrics.online_members} online now
               </p>
             </div>
-            <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
+            <div className="w-12 h-12 bg-gradient-to-r from-systemix-pink to-systemix-purple rounded-xl flex items-center justify-center shadow-lg shadow-systemix-pink/30">
               <span className="text-2xl">👥</span>
             </div>
           </div>
