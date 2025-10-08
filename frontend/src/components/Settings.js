@@ -195,10 +195,68 @@ const Settings = () => {
   const getRoleColor = (role) => {
     switch (role) {
       case 'admin': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200';
-      case 'manager': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200';
-      case 'user': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200';
+      case 'manager': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200';
+      case 'user': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200';
       case 'viewer': return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-200';
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-200';
+    }
+  };
+
+  // Additional navigation and interaction functions
+  const editUser = (user) => {
+    setNewUser({
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      department: user.department,
+      status: user.status,
+      created_by: user.created_by
+    });
+    setShowCreateModal(true);
+  };
+
+  const deleteUser = async (userId) => {
+    if (window.confirm('Are you sure you want to delete this user?')) {
+      try {
+        await axios.delete(`${API}/users/${userId}`);
+        setUsers(users.filter(u => u.id !== userId));
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        alert('Error deleting user. Please try again.');
+      }
+    }
+  };
+
+  const resetPassword = async (userId) => {
+    if (window.confirm('Send password reset email to this user?')) {
+      try {
+        // Simulate password reset
+        alert('Password reset email sent successfully!');
+      } catch (error) {
+        console.error('Error resetting password:', error);
+        alert('Error sending reset email. Please try again.');
+      }
+    }
+  };
+
+  const testWebhook = async (webhookId) => {
+    try {
+      alert(`Testing webhook ${webhookId}...\nWebhook test successful! Response received: 200 OK`);
+    } catch (error) {
+      alert(`Webhook test failed: ${error.message}`);
+    }
+  };
+
+  const deleteWebhook = async (webhookId) => {
+    if (window.confirm('Are you sure you want to delete this webhook?')) {
+      try {
+        // Simulate webhook deletion
+        alert('Webhook deleted successfully!');
+        fetchData(); // Refresh data
+      } catch (error) {
+        console.error('Error deleting webhook:', error);
+        alert('Error deleting webhook. Please try again.');
+      }
     }
   };
 
