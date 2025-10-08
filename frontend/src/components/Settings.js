@@ -839,13 +839,22 @@ const Settings = () => {
                   <div><strong>Executions:</strong> {rule.execution_count}</div>
                 </div>
                 <div className="flex space-x-2 mt-4">
-                  <button className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300">
+                  <button 
+                    onClick={() => editBusinessRule(rule)}
+                    className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                  >
                     Edit
                   </button>
-                  <button className="text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                  <button 
+                    onClick={() => testBusinessRule(rule.id)}
+                    className="text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                  >
                     Test
                   </button>
-                  <button className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300">
+                  <button 
+                    onClick={() => deleteBusinessRule(rule.id)}
+                    className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
+                  >
                     Delete
                   </button>
                 </div>
