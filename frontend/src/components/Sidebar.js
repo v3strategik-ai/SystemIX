@@ -136,10 +136,10 @@ const Sidebar = ({ open, setOpen, darkMode, toggleDarkMode, currentUser }) => {
               <Link
                 key={item.name}
                 to={item.path}
-                className={`group flex items-center px-2 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                  isActive
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
-                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
+                className={`group flex items-center px-3 py-3 text-sm font-medium rounded-xl transition-all duration-300 ${
+                  location.pathname === item.path
+                    ? 'bg-gradient-to-r from-systemix-electric via-systemix-bright-blue to-systemix-purple text-white shadow-xl shadow-systemix-electric/30 transform scale-105'
+                    : 'text-gray-300 hover:text-white hover:bg-gradient-to-r hover:from-systemix-electric/10 hover:to-systemix-purple/10 hover:border-l-4 hover:border-systemix-electric'
                 }`}
               >
                 <span className={`${open ? 'mr-3' : 'mx-auto'}`}>
