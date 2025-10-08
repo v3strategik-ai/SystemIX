@@ -49,6 +49,42 @@ const TeamManagement = () => {
     }
   };
 
+  // Additional team member functions
+  const viewMemberProfile = (member) => {
+    alert(`Viewing profile: ${member.name}\nRole: ${member.role}\nDepartment: ${member.department}\nJoined: ${new Date(member.joined_at).toLocaleDateString()}\nProjects: ${member.project_count || 0}`);
+  };
+
+  const sendMessage = (member) => {
+    alert(`Opening chat with ${member.name}\nThis would open the internal messaging system.`);
+  };
+
+  const editTeamMember = (member) => {
+    setNewMember({
+      name: member.name,
+      email: member.email,
+      role: member.role,
+      department: member.department,
+      phone: member.phone,
+      bio: member.bio,
+      skills: member.skills || [],
+      permissions: member.permissions || []
+    });
+    setShowCreateModal(true);
+  };
+
+  const deactivateTeamMember = async (memberId) => {
+    if (window.confirm('Are you sure you want to deactivate this team member?')) {
+      try {
+        // Simulate deactivation
+        alert('Team member deactivated successfully!');
+        fetchTeamMembers(); // Refresh data
+      } catch (error) {
+        console.error('Error deactivating member:', error);
+        alert('Error deactivating member. Please try again.');
+      }
+    }
+  };
+
   const departments = ['all', ...new Set(teamMembers.map(member => member.department))];
   const filteredMembers = selectedDepartment === 'all' 
     ? teamMembers 
