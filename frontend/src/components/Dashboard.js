@@ -128,12 +128,12 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-white/10 to-systemix-metallic/20 backdrop-blur-lg rounded-xl p-6 border border-systemix-bright-blue/20 hover:border-systemix-bright-blue/40 hover:shadow-xl hover:shadow-systemix-bright-blue/20 transition-all duration-300 transform hover:scale-105">
+        <div className="bg-gradient-to-br from-white/95 to-gray-50/90 dark:from-systemix-metallic/60 dark:to-systemix-dark/40 backdrop-blur-lg rounded-xl p-6 border border-systemix-bright-blue/30 hover:border-systemix-bright-blue/60 hover:shadow-xl hover:shadow-systemix-bright-blue/30 transition-all duration-300 transform hover:scale-105">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-300">Active Workflows</p>
-              <p className="text-3xl font-bold text-white">{metrics.active_workflows}</p>
-              <p className="text-sm text-systemix-bright-blue">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Active Workflows</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white">{metrics.active_workflows}</p>
+              <p className="text-sm text-systemix-deep-blue dark:text-systemix-bright-blue font-medium">
                 {metrics.automated_today} automated today
               </p>
             </div>
@@ -143,12 +143,12 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-white/10 to-systemix-metallic/20 backdrop-blur-lg rounded-xl p-6 border border-systemix-purple/20 hover:border-systemix-purple/40 hover:shadow-xl hover:shadow-systemix-purple/20 transition-all duration-300 transform hover:scale-105">
+        <div className="bg-gradient-to-br from-white/95 to-gray-50/90 dark:from-systemix-metallic/60 dark:to-systemix-dark/40 backdrop-blur-lg rounded-xl p-6 border border-systemix-purple/30 hover:border-systemix-purple/60 hover:shadow-xl hover:shadow-systemix-purple/30 transition-all duration-300 transform hover:scale-105">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-300">AI Tasks Completed</p>
-              <p className="text-3xl font-bold text-white">{metrics.ai_tasks_completed.toLocaleString()}</p>
-              <p className="text-sm text-systemix-purple">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">AI Tasks Completed</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white">{metrics.ai_tasks_completed.toLocaleString()}</p>
+              <p className="text-sm text-systemix-deep-blue dark:text-systemix-purple font-medium">
                 {metrics.success_rate}% success rate
               </p>
             </div>
@@ -158,12 +158,12 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-white/10 to-systemix-metallic/20 backdrop-blur-lg rounded-xl p-6 border border-systemix-pink/20 hover:border-systemix-pink/40 hover:shadow-xl hover:shadow-systemix-pink/20 transition-all duration-300 transform hover:scale-105">
+        <div className="bg-gradient-to-br from-white/95 to-gray-50/90 dark:from-systemix-metallic/60 dark:to-systemix-dark/40 backdrop-blur-lg rounded-xl p-6 border border-systemix-pink/30 hover:border-systemix-pink/60 hover:shadow-xl hover:shadow-systemix-pink/30 transition-all duration-300 transform hover:scale-105">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-300">Team Members</p>
-              <p className="text-3xl font-bold text-white">{metrics.team_members}</p>
-              <p className="text-sm text-systemix-pink">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Team Members</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white">{metrics.team_members}</p>
+              <p className="text-sm text-systemix-deep-blue dark:text-systemix-pink font-medium">
                 {metrics.online_members} online now
               </p>
             </div>
