@@ -128,17 +128,6 @@ const QuotingTool = () => {
     }
   };
 
-  const sendQuote = async (quoteId) => {
-    try {
-      await axios.post(`${API}/quotes/${quoteId}/send`);
-      setQuotes(quotes.map(quote => 
-        quote.id === quoteId ? { ...quote, status: 'sent', sent_at: new Date().toISOString() } : quote
-      ));
-    } catch (error) {
-      console.error('Error sending quote:', error);
-    }
-  };
-
   const addLineItem = () => {
     setNewQuote({
       ...newQuote,
