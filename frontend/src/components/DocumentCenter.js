@@ -197,6 +197,52 @@ const DocumentCenter = () => {
     }
   };
 
+  // New navigation and interaction functions
+  const useTemplate = (template) => {
+    setSelectedTemplate(template);
+    setNewDocument({
+      ...newDocument,
+      template_id: template.id,
+      title: `New ${template.name}`,
+      content: template.content,
+      type: template.type,
+      category_id: template.category_id
+    });
+    setShowCreateModal(true);
+  };
+
+  const previewTemplate = (template) => {
+    setSelectedTemplate(template);
+    setShowTemplateModal(true);
+  };
+
+  const viewDocument = (document) => {
+    alert(`Viewing document: ${document.title}\nStatus: ${document.status}\nCreated: ${new Date(document.created_at).toLocaleDateString()}`);
+  };
+
+  const editDocument = (document) => {
+    setSelectedTemplate(document);
+    setNewDocument({
+      title: document.title,
+      description: document.description,
+      template_id: document.template_id || '',
+      type: document.type,
+      category_id: document.category_id,
+      content: document.content,
+      file_format: document.file_format,
+      access_level: document.access_level,
+      signature_required: document.signature_required,
+      signers: document.signers || [],
+      created_by: document.created_by
+    });
+    setShowCreateModal(true);
+  };
+
+  const viewCategoryDocuments = (categoryId) => {
+    setSelectedCategory(categoryId);
+    setActiveView('documents');
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'draft': return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-200';
