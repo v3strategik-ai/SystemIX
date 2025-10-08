@@ -536,10 +536,16 @@ const DocumentCenter = () => {
                         <div className="text-xs">v{document.version}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                        <button className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300">
+                        <button 
+                          onClick={() => viewDocument(document)}
+                          className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                        >
                           View
                         </button>
-                        <button className="text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                        <button 
+                          onClick={() => editDocument(document)}
+                          className="text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                        >
                           Edit
                         </button>
                         {document.signature_required && document.status === 'active' && (
