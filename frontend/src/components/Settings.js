@@ -213,7 +213,7 @@ const Settings = () => {
       status: user.status,
       created_by: user.created_by
     });
-    setShowCreateModal(true);
+    setShowUserModal(true);
   };
 
   const deleteUser = async (userId) => {
