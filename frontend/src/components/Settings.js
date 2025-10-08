@@ -21,6 +21,7 @@ const Settings = () => {
   
   // Modal states
   const [showUserModal, setShowUserModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showWebhookModal, setShowWebhookModal] = useState(false);
   const [showRuleModal, setShowRuleModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
