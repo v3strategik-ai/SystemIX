@@ -171,15 +171,6 @@ const QuotingTool = () => {
     }).format(amount);
   };
 
-  const initializeSampleData = async () => {
-    try {
-      await axios.post(`${API}/quotes/initialize-sample-data`);
-      fetchData();
-    } catch (error) {
-      console.error('Error initializing sample data:', error);
-    }
-  };
-
   if (loading) {
     return (
       <div className="p-6">
