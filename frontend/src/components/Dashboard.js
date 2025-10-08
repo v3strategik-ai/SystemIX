@@ -111,14 +111,14 @@ const Dashboard = () => {
 
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-gradient-to-br from-white/10 to-systemix-metallic/20 backdrop-blur-lg rounded-xl p-6 border border-systemix-electric/20 hover:border-systemix-electric/40 hover:shadow-xl hover:shadow-systemix-electric/20 transition-all duration-300 transform hover:scale-105">
+        <div className="bg-gradient-to-br from-white/95 to-gray-50/90 dark:from-systemix-metallic/60 dark:to-systemix-dark/40 backdrop-blur-lg rounded-xl p-6 border border-systemix-electric/30 hover:border-systemix-electric/60 hover:shadow-xl hover:shadow-systemix-electric/30 transition-all duration-300 transform hover:scale-105">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-300">Total Revenue</p>
-              <p className="text-3xl font-bold text-white">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Total Revenue</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white">
                 ${(metrics.total_revenue / 1000000).toFixed(1)}M
               </p>
-              <p className="text-sm text-systemix-electric">
+              <p className="text-sm text-systemix-deep-blue dark:text-systemix-electric font-medium">
                 +{metrics.revenue_growth}% from last month
               </p>
             </div>
