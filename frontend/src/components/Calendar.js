@@ -488,7 +488,9 @@ Sent from SystemIX AI Platinum Suite
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Create New Event</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              {editingEvent ? 'Edit Event' : 'Create New Event'}
+            </h3>
             
             <div className="space-y-4">
               <div>
