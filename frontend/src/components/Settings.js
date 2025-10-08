@@ -720,7 +720,16 @@ const Settings = () => {
                         <span className={`tag ${webhook.is_active ? 'tag-green' : 'tag-gray'}`}>
                           {webhook.is_active ? 'Active' : 'Inactive'}
                         </span>
-                        <button className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300">
+                        <button 
+                          onClick={() => testWebhook(webhook.id)}
+                          className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 mr-2"
+                        >
+                          Test
+                        </button>
+                        <button 
+                          onClick={() => deleteWebhook(webhook.id)}
+                          className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
+                        >
                           Delete
                         </button>
                       </div>
