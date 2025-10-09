@@ -1306,7 +1306,7 @@ async def initialize_default_users():
         employee_user = User(
             email="employee@systemix.com",
             name="John Employee",
-            role=UserRole.EMPLOYEE,
+            role=LocalUserRole.EMPLOYEE,
             password_hash=get_password_hash("employee123")
         )
         employee_dict = employee_user.dict()
