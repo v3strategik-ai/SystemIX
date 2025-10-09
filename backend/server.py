@@ -1198,6 +1198,128 @@ async def score_lead(lead_data: dict) -> int:
 async def root():
     return {"message": "SystemIX AI Platinum Suite API", "version": "1.0.0"}
 
+# Authentication Routes
+@api_router.post("/auth/register", response_model=UserResponse)
+async def register_user(user_data: UserCreate):
+    """Register a new user"""
+    # Check if user already exists
+    existing_user = await db.users.find_one({"email": user_data.email})
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
+    
+    # Hash password and create user
+    hashed_password = get_password_hash(user_data.password)
+    user = User(
+        email=user_data.email,
+        name=user_data.name,
+        role=user_data.role,
+        password_hash=hashed_password
+    )
+    
+    # Store user in database
+    user_dict = user.dict()
+    user_dict['created_at'] = user_dict['created_at'].isoformat()
+    if user_dict.get('last_login'):
+        user_dict['last_login'] = user_dict['last_login'].isoformat()
+    
+    await db.users.insert_one(user_dict)
+    
+    return UserResponse(**user.dict())
+
+@api_router.post("/auth/login", response_model=TokenResponse)
+async def login_user(user_credentials: UserLogin):
+    """Authenticate user and return JWT token"""
+    user_doc = await db.users.find_one({"email": user_credentials.email})
+    
+    if not user_doc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    user = User(**user_doc)
+    if not verify_password(user_credentials.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Update last login
+    await db.users.update_one(
+        {"id": user.id}, 
+        {"$set": {"last_login": datetime.utcnow().isoformat()}}
+    )
+    
+    # Create access token
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.id, "email": user.email, "role": user.role},
+        expires_delta=access_token_expires
+    )
+    
+    return TokenResponse(
+        access_token=access_token,
+        user=UserResponse(**user.dict())
+    )
+
+@api_router.get("/auth/me", response_model=UserResponse)
+async def get_current_user_info(current_user: User = Depends(get_current_active_user)):
+    """Get current user information"""
+    return UserResponse(**current_user.dict())
+
+@api_router.post("/auth/initialize-default-users")
+async def initialize_default_users():
+    """Initialize default admin and employee users for testing"""
+    # Check if users already exist
+    existing_admin = await db.users.find_one({"email": "admin@systemix.com"})
+    existing_employee = await db.users.find_one({"email": "employee@systemix.com"})
+    
+    created_users = []
+    
+    if not existing_admin:
+        admin_user = User(
+            email="admin@systemix.com",
+            name="System Administrator",
+            role=UserRole.ADMIN,
+            password_hash=get_password_hash("admin123")
+        )
+        admin_dict = admin_user.dict()
+        admin_dict['created_at'] = admin_dict['created_at'].isoformat()
+        if admin_dict.get('last_login'):
+            admin_dict['last_login'] = admin_dict['last_login'].isoformat()
+        
+        await db.users.insert_one(admin_dict)
+        created_users.append("admin@systemix.com")
+    
+    if not existing_employee:
+        employee_user = User(
+            email="employee@systemix.com",
+            name="John Employee",
+            role=UserRole.EMPLOYEE,
+            password_hash=get_password_hash("employee123")
+        )
+        employee_dict = employee_user.dict()
+        employee_dict['created_at'] = employee_dict['created_at'].isoformat()
+        if employee_dict.get('last_login'):
+            employee_dict['last_login'] = employee_dict['last_login'].isoformat()
+        
+        await db.users.insert_one(employee_dict)
+        created_users.append("employee@systemix.com")
+    
+    return {
+        "message": "Default users initialized",
+        "created_users": created_users,
+        "credentials": {
+            "admin": {"email": "admin@systemix.com", "password": "admin123"},
+            "employee": {"email": "employee@systemix.com", "password": "employee123"}
+        }
+    }
+
 # Dashboard Routes
 @api_router.get("/dashboard/metrics", response_model=DashboardMetrics)
 async def get_dashboard_metrics():
