@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Implement the Autonomous Network Monitoring Bot (Feature 5 from the user's future roadmap) with AI-powered anomaly detection, self-healing capabilities, real-time monitoring dashboard, and alert management."
+user_problem_statement: "Replace the SystemIX logo in the upper left corner with the simple S logo provided by user. Maintain consistent branding across both expanded and collapsed sidebar states."
 
 backend:
   - task: "Monitoring Data Models"
