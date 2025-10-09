@@ -1248,6 +1248,9 @@ async def login_user(user_credentials: UserLogin):
         )
     
     user = User(**user_doc)
+    print(f"DEBUG: Attempting login for {user_credentials.email}")
+    print(f"DEBUG: Stored hash: {user.password_hash}")
+    print(f"DEBUG: Provided password hash: {get_password_hash(user_credentials.password)}")
     if not verify_password(user_credentials.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
