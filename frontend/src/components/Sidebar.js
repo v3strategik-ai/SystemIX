@@ -3,6 +3,9 @@ import { Link, useLocation } from 'react-router-dom';
 
 const Sidebar = ({ open, setOpen, darkMode, toggleDarkMode, currentUser }) => {
   const location = useLocation();
+  
+  // Check if user is admin
+  const isAdmin = currentUser?.role === 'admin';
 
   const menuItems = [
     {
