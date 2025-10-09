@@ -1290,6 +1290,9 @@ async def debug_users():
 @api_router.post("/auth/initialize-default-users")
 async def initialize_default_users():
     """Initialize default admin and employee users for testing"""
+    # Clear existing users first
+    await db.users.delete_many({"email": {"$in": ["admin@systemix.com", "employee@systemix.com"]}})
+    
     # Check if users already exist
     existing_admin = await db.users.find_one({"email": "admin@systemix.com"})
     existing_employee = await db.users.find_one({"email": "employee@systemix.com"})
