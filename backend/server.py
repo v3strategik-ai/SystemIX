@@ -1278,6 +1278,12 @@ async def get_current_user_info(current_user: User = Depends(get_current_active_
     """Get current user information"""
     return UserResponse(**current_user.dict())
 
+@api_router.get("/auth/debug-users")
+async def debug_users():
+    """Debug endpoint to check existing users"""
+    users = await db.users.find().to_list(length=None)
+    return {"users": [{"email": user.get("email"), "role": user.get("role"), "has_password": bool(user.get("password_hash"))} for user in users]}
+
 @api_router.post("/auth/initialize-default-users")
 async def initialize_default_users():
     """Initialize default admin and employee users for testing"""
