@@ -138,7 +138,7 @@ const Sidebar = ({ open, setOpen, darkMode, toggleDarkMode, currentUser }) => {
                 to={item.path}
                 className={`group flex items-center px-3 py-3 text-sm font-medium rounded-xl transition-all duration-300 ${
                   location.pathname === item.path
-                    ? 'bg-gradient-to-r from-systemix-electric via-systemix-bright-blue to-systemix-purple text-white shadow-xl shadow-systemix-electric/30 transform scale-105'
+                    ? 'bg-gradient-to-r from-systemix-electric via-systemix-bright-blue to-systemix-purple text-white shadow-lg shadow-systemix-electric/15 transform scale-102'
                     : 'text-gray-300 hover:text-white hover:bg-gradient-to-r hover:from-systemix-electric/10 hover:to-systemix-purple/10 hover:border-l-4 hover:border-systemix-electric'
                 }`}
               >
