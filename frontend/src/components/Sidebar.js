@@ -116,7 +116,7 @@ const Sidebar = ({ open, setOpen, darkMode, toggleDarkMode, currentUser }) => {
           {open ? (
             <div className="flex flex-col items-center space-y-1">
               <img 
-                src="https://customer-assets.emergentagent.com/job_systemix-hub/artifacts/mtljh65o_Photoroom_20251008_112152.PNG" 
+                src="https://customer-assets.emergentagent.com/job_systemix-workspace/artifacts/0zxfh74m_slogo.PNG" 
                 alt="SystemIX Logo" 
                 className="h-12 w-auto object-contain filter drop-shadow-lg"
               />
