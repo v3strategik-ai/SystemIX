@@ -26,7 +26,27 @@ import LoadingSpinner from './components/LoadingSpinner';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-function App() {
+// Protected Route Component
+const ProtectedRoute = ({ children, requiredRole }) => {
+  const { hasAccess } = useAuth();
+  
+  if (!hasAccess(requiredRole)) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Access Denied</h2>
+          <p className="text-gray-600 dark:text-gray-400">You don't have permission to access this feature.</p>
+        </div>
+      </div>
+    );
+  }
+  
+  return children;
+};
+
+// Main Authenticated App Component
+function AuthenticatedApp() {
+  const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
