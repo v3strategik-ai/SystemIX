@@ -181,4 +181,32 @@ function AuthenticatedApp() {
   );
 }
 
+// Main App Component with Authentication
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+}
+
+// App Content that responds to authentication state
+function AppContent() {
+  const { user, loading, login } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-systemix-dark via-systemix-metallic to-systemix-dark">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login onLogin={login} />;
+  }
+
+  return <AuthenticatedApp />;
+}
+
 export default App;
