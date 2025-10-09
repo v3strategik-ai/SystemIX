@@ -51,6 +51,11 @@ from models.auth import (
     TokenData, UserRole
 )
 
+# Define UserRole locally as backup
+class LocalUserRole(str, Enum):
+    ADMIN = "admin"
+    EMPLOYEE = "employee"
+
 # Import quoting models directly
 class QuoteStatus(str, Enum):
     DRAFT = "draft"
