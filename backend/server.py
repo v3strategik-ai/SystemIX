@@ -1291,7 +1291,7 @@ async def initialize_default_users():
         admin_user = User(
             email="admin@systemix.com",
             name="System Administrator",
-            role=UserRole.ADMIN,
+            role=LocalUserRole.ADMIN,
             password_hash=get_password_hash("admin123")
         )
         admin_dict = admin_user.dict()
@@ -3367,7 +3367,7 @@ async def initialize_settings_sample_data():
                 username="admin",
                 email="admin@systemix.ai",
                 full_name="System Administrator",
-                role=UserRole.ADMIN,
+                role=LocalUserRole.ADMIN,
                 department="IT",
                 permissions=["all"]
             ),
