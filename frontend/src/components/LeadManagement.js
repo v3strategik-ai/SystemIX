@@ -346,6 +346,107 @@ Best regards`;
           </div>
         </div>
       )}
+
+      {/* Edit Lead Modal */}
+      {showEditModal && editingLead && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Edit Lead</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+                <input
+                  type="text"
+                  value={editingLead.name}
+                  onChange={(e) => setEditingLead({ ...editingLead, name: e.target.value })}
+                  className="form-input"
+                  placeholder="Enter lead name"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                <input
+                  type="email"
+                  value={editingLead.email}
+                  onChange={(e) => setEditingLead({ ...editingLead, email: e.target.value })}
+                  className="form-input"
+                  placeholder="Enter email address"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Company</label>
+                <input
+                  type="text"
+                  value={editingLead.company}
+                  onChange={(e) => setEditingLead({ ...editingLead, company: e.target.value })}
+                  className="form-input"
+                  placeholder="Enter company name"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
+                <input
+                  type="tel"
+                  value={editingLead.phone || ''}
+                  onChange={(e) => setEditingLead({ ...editingLead, phone: e.target.value })}
+                  className="form-input"
+                  placeholder="Enter phone number"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Source</label>
+                <select
+                  value={editingLead.source}
+                  onChange={(e) => setEditingLead({ ...editingLead, source: e.target.value })}
+                  className="form-input"
+                >
+                  <option value="">Select source</option>
+                  <option value="Website">Website</option>
+                  <option value="LinkedIn">LinkedIn</option>
+                  <option value="Referral">Referral</option>
+                  <option value="Cold Email">Cold Email</option>
+                  <option value="Conference">Conference</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes</label>
+                <textarea
+                  value={editingLead.notes || ''}
+                  onChange={(e) => setEditingLead({ ...editingLead, notes: e.target.value })}
+                  className="form-input"
+                  rows="3"
+                  placeholder="Add notes about this lead"
+                />
+              </div>
+            </div>
+            
+            <div className="flex space-x-3 mt-6">
+              <button
+                onClick={updateLead}
+                className="flex-1 btn-primary"
+                disabled={!editingLead.name || !editingLead.email || !editingLead.company}
+              >
+                Update Lead
+              </button>
+              <button
+                onClick={() => {
+                  setShowEditModal(false);
+                  setEditingLead(null);
+                }}
+                className="flex-1 btn-secondary"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
