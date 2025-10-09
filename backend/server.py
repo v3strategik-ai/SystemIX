@@ -910,20 +910,15 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "your-secret-key-here-change-in-produc
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=12)
 security = HTTPBearer()
 
 def verify_password(plain_password, hashed_password):
-    # Truncate password to 72 bytes for bcrypt compatibility
-    if len(plain_password.encode('utf-8')) > 72:
-        plain_password = plain_password.encode('utf-8')[:72].decode('utf-8', 'ignore')
-    return pwd_context.verify(plain_password, hashed_password)
+    # Simple SHA256 hashing for now
+    return hashlib.sha256(plain_password.encode()).hexdigest() == hashed_password
 
 def get_password_hash(password):
-    # Truncate password to 72 bytes for bcrypt compatibility
-    if len(password.encode('utf-8')) > 72:
-        password = password.encode('utf-8')[:72].decode('utf-8', 'ignore')
-    return pwd_context.hash(password)
+    # Simple SHA256 hashing for now
+    return hashlib.sha256(password.encode()).hexdigest()
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
