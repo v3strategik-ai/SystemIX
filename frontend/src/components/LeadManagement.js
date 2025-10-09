@@ -229,10 +229,16 @@ Best regards`;
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 mr-4">
+                    <button 
+                      onClick={() => handleEditLead(lead)}
+                      className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 mr-4 transition-colors"
+                    >
                       Edit
                     </button>
-                    <button className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300">
+                    <button 
+                      onClick={() => handleContactLead(lead)}
+                      className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 transition-colors"
+                    >
                       Contact
                     </button>
                   </td>
