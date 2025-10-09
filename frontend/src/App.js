@@ -95,7 +95,7 @@ function AuthenticatedApp() {
             setOpen={setSidebarOpen}
             darkMode={darkMode}
             toggleDarkMode={toggleDarkMode}
-            currentUser={currentUser}
+            currentUser={user}
           />
 
           {/* Main Content */}
