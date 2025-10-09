@@ -4,7 +4,7 @@ import json
 from datetime import datetime, timedelta
 
 class SystemIXAPITester:
-    def __init__(self, base_url="https://systemix-hub.preview.emergentagent.com"):
+    def __init__(self, base_url="https://systemix-workspace.preview.emergentagent.com"):
         self.base_url = base_url
         self.api_url = f"{base_url}/api"
         self.tests_run = 0
@@ -795,7 +795,7 @@ class SystemIXAPITester:
                 oauth_init_data = {
                     "platform_id": oauth_platform["id"],
                     "connection_name": "Test OAuth Connection",
-                    "redirect_uri": "https://systemix-hub.preview.emergentagent.com/integrations/callback",
+                    "redirect_uri": "https://systemix-workspace.preview.emergentagent.com/integrations/callback",
                     "user_id": "api_tester"
                 }
                 
