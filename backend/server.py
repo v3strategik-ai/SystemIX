@@ -45,6 +45,12 @@ from models.monitoring import (
     MonitoringConfig, AnomalyDetection, AlertSeverity, AlertStatus
 )
 
+# Import authentication models
+from models.auth import (
+    User, UserCreate, UserLogin, UserResponse, TokenResponse, 
+    TokenData, UserRole
+)
+
 # Import quoting models directly
 class QuoteStatus(str, Enum):
     DRAFT = "draft"
