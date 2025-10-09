@@ -3,6 +3,10 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import axios from 'axios';
 import './App.css';
 
+// Authentication
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Login from './components/Login';
+
 // Components
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
