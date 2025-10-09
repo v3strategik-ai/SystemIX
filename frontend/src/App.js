@@ -124,14 +124,18 @@ function AuthenticatedApp() {
                   </div>
                   
                   <div className="flex items-center space-x-2">
-                    <img
-                      src={currentUser.avatar}
-                      alt={currentUser.name}
-                      className="w-8 h-8 rounded-full border-2 border-blue-200 dark:border-blue-600"
-                    />
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-systemix-electric to-systemix-purple flex items-center justify-center border-2 border-blue-200 dark:border-blue-600">
+                      <span className="text-white text-sm font-bold">{user.name.charAt(0)}</span>
+                    </div>
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                      {currentUser.name}
+                      {user.name}
                     </span>
+                    <button
+                      onClick={logout}
+                      className="ml-2 text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
+                    >
+                      Logout
+                    </button>
                   </div>
                 </div>
               </div>
