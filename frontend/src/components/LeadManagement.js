@@ -45,6 +45,39 @@ const LeadManagement = () => {
     }
   };
 
+  const handleEditLead = (lead) => {
+    setEditingLead(lead);
+    setShowEditModal(true);
+  };
+
+  const updateLead = async () => {
+    try {
+      const response = await axios.put(`${API}/leads/${editingLead.id}`, editingLead);
+      setLeads(leads.map(lead => lead.id === editingLead.id ? response.data : lead));
+      setShowEditModal(false);
+      setEditingLead(null);
+    } catch (error) {
+      console.error('Error updating lead:', error);
+    }
+  };
+
+  const handleContactLead = (lead) => {
+    // Create a professional email template
+    const subject = `Follow up - ${lead.company}`;
+    const body = `Hi ${lead.name},
+
+I hope this email finds you well. I wanted to follow up regarding our previous discussion about ${lead.company}.
+
+Would you be available for a brief call this week to discuss how we can help with your business needs?
+
+Looking forward to hearing from you.
+
+Best regards`;
+    
+    const mailtoUrl = `mailto:${lead.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(mailtoUrl, '_blank');
+  };
+
   const getStatusColor = (score) => {
     if (score >= 80) return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200';
     if (score >= 60) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200';
