@@ -8,6 +8,8 @@ const LeadManagement = () => {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingLead, setEditingLead] = useState(null);
   const [newLead, setNewLead] = useState({
     name: '',
     email: '',
