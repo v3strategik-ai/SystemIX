@@ -148,13 +148,27 @@ function AuthenticatedApp() {
                 <Route path="/leads" element={<LeadManagement />} />
                 <Route path="/tasks" element={<TaskManagement />} />
                 <Route path="/workflows" element={<WorkflowAutomation />} />
-                <Route path="/team" element={<TeamManagement />} />
+                <Route 
+                  path="/team" 
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <TeamManagement />
+                    </ProtectedRoute>
+                  } 
+                />
                 <Route path="/calendar" element={<Calendar />} />
                 <Route path="/quotes" element={<QuotingTool />} />
                 <Route path="/documents" element={<DocumentCenter />} />
                 <Route path="/integrations" element={<IntegrationsHub />} />
                 <Route path="/monitoring" element={<NetworkMonitoring />} />
-                <Route path="/settings" element={<Settings />} />
+                <Route 
+                  path="/settings" 
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <Settings />
+                    </ProtectedRoute>
+                  } 
+                />
               </Routes>
             </main>
           </div>
