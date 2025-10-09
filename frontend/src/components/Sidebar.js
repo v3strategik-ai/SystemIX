@@ -135,7 +135,9 @@ const Sidebar = ({ open, setOpen, darkMode, toggleDarkMode, currentUser }) => {
 
         {/* Navigation */}
         <nav className="flex-1 px-2 py-4 space-y-1">
-          {menuItems.map((item) => {
+          {menuItems
+            .filter(item => !item.adminOnly || isAdmin)
+            .map((item) => {
             const isActive = location.pathname === item.path;
             return (
               <Link
